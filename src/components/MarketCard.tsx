@@ -2,15 +2,20 @@ import styled from "styled-components";
 import { Market } from "@/types/market";
 import Link from "next/link";
 import { useState } from "react";
+import { FaClock, FaCheckCircle, FaTimesCircle, FaCoins, FaUsers, FaCalendarAlt } from 'react-icons/fa';
 
 interface Props {
   market: Market;
   onClick?: () => void;
 }
 
+const MIN_BET = 0.001;
+const MAX_BET = 5;
+
 export function MarketCard({ market }: Props) {
   const [modal, setModal] = useState<null | "yes" | "no">(null);
-  const [amount, setAmount] = useState(10);
+  const [amount, setAmount] = useState(MIN_BET);
+  const [error, setError] = useState("");
 
   const handleBuy = (side: "yes" | "no") => setModal(side);
   const closeModal = () => setModal(null);
@@ -24,43 +29,115 @@ export function MarketCard({ market }: Props) {
 
   // Basit bir kazanç hesaplama örneği (dummy)
   const getToWin = () => {
-    if (!amount || amount <= 0) return "$0.00";
+    if (!amount || amount <= 0) return "0.00 ETH";
     // Örnek: 2.273x kazanç oranı
     const odds = modal === "yes" ? 2.273 : 1.754;
-    return `$${(amount * odds).toFixed(2)}`;
+    return `${(amount * odds).toFixed(4)} ETH`;
   };
 
   const handleAmountChange = (val: number) => {
-    if (val < 0) val = 0;
+    if (val < MIN_BET) {
+      setAmount(val);
+      setError(`Minimum bet is ${MIN_BET} ETH`);
+      return;
+    }
+    if (val > MAX_BET) {
+      setAmount(val);
+      setError(`Maximum bet is ${MAX_BET} ETH`);
+      return;
+    }
     setAmount(val);
+    setError("");
   };
+
+  const getStatusIcon = () => {
+    if (market.status === "resolved") {
+      return market.result === "yes" ? <FaCheckCircle /> : <FaTimesCircle />;
+    }
+    return <FaClock />;
+  };
+
+  const getStatusColor = () => {
+    if (market.status === "resolved") {
+      return market.result === "yes" ? "green" : "red";
+    }
+    return "blue";
+  };
+
+  const totalPool = market.initialPool + market.bets.reduce((sum, b) => sum + b.amount, 0);
+  const totalBets = market.bets.length;
+  const timeLeft = market.closesAt - Date.now();
+  const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
 
   return (
     <Card onClick={handleCardClick}>
-      <Link href={`/market/${market.id}`}>
-        <div style={{ cursor: "pointer" }}>
-          <Title>{market.title}</Title>
-          <Description>{market.description}</Description>
-        </div>
-      </Link>
-      <InfoRow>
-        <Info>
-          <Label>Pool</Label>
-          <Value>{market.initialPool + market.bets.reduce((sum, b) => sum + b.amount, 0)} ETH</Value>
-        </Info>
-        <Info>
-          <Label>Min/Max</Label>
-          <Value>{market.minBet} / {market.maxBet} ETH</Value>
-        </Info>
-        <Info>
-          <Label>Status</Label>
-          <Value>{market.status === "open" ? "Open" : market.status === "closed" ? "Closed" : "Resolved"}</Value>
-        </Info>
-      </InfoRow>
-      <ButtonRow>
-        <BuyYesButton onClick={e => { e.stopPropagation(); handleBuy("yes"); }}>Buy Yes</BuyYesButton>
-        <BuyNoButton onClick={e => { e.stopPropagation(); handleBuy("no"); }}>Buy No</BuyNoButton>
-      </ButtonRow>
+      <CardHeader>
+        <StatusBadge $status={getStatusColor()}>
+          {getStatusIcon()}
+          {market.status === "open" ? "Open" : market.status === "resolved" ? (market.result === "yes" ? "Yes Won" : "No Won") : "Closed"}
+        </StatusBadge>
+        <TimeLeft>
+          {market.status === "open" ? (
+            <>
+              <FaCalendarAlt />
+              {daysLeft > 0 ? `${daysLeft} days left` : "Closing soon"}
+            </>
+          ) : (
+            <>
+              <FaCheckCircle />
+              Resolved
+            </>
+          )}
+        </TimeLeft>
+      </CardHeader>
+      <CardContent>
+        <Link href={`/market/${market.id}`}>
+          <div style={{ cursor: "pointer" }}>
+            <Title>{market.title}</Title>
+            <Description>{market.description}</Description>
+          </div>
+        </Link>
+        <StatsRow>
+          <Stat>
+            <StatIcon>
+              <FaCoins />
+            </StatIcon>
+            <StatContent>
+              <StatValue>{totalPool.toFixed(2)} ETH</StatValue>
+              <StatLabel>Total Pool</StatLabel>
+            </StatContent>
+          </Stat>
+          <Stat>
+            <StatIcon>
+              <FaUsers />
+            </StatIcon>
+            <StatContent>
+              <StatValue>{totalBets}</StatValue>
+              <StatLabel>Bets</StatLabel>
+            </StatContent>
+          </Stat>
+        </StatsRow>
+        <InfoRow>
+          <Info>
+            <InfoLabel>Min/Max Bet</InfoLabel>
+            <InfoValue>{market.minBet} / {market.maxBet} ETH</InfoValue>
+          </Info>
+          <Info>
+            <InfoLabel>Initial Pool</InfoLabel>
+            <InfoValue>{market.initialPool} ETH</InfoValue>
+          </Info>
+        </InfoRow>
+      </CardContent>
+      <CardFooter>
+        <ButtonRow>
+          <BuyYesButton onClick={e => { e.stopPropagation(); handleBuy("yes"); }}>
+            Buy Yes
+          </BuyYesButton>
+          <BuyNoButton onClick={e => { e.stopPropagation(); handleBuy("no"); }}>
+            Buy No
+          </BuyNoButton>
+        </ButtonRow>
+      </CardFooter>
       {modal && (
         <FullCoverModal $open={!!modal}>
           <ModalContent>
@@ -71,23 +148,28 @@ export function MarketCard({ market }: Props) {
             <AmountRow>
               <AmountInput
                 type="number"
-                min={0}
+                min={MIN_BET}
+                max={MAX_BET}
+                step={0.001}
                 value={amount}
                 onChange={e => handleAmountChange(Number(e.target.value))}
+                placeholder="Amount (ETH)"
               />
-              <AmountButton onClick={() => handleAmountChange(amount + 1)}>+1</AmountButton>
-              <AmountButton onClick={() => handleAmountChange(amount + 10)}>+10</AmountButton>
+              <AmountButton onClick={() => handleAmountChange(MIN_BET)}>Min</AmountButton>
+              <AmountButton onClick={() => handleAmountChange(MAX_BET)}>Max</AmountButton>
             </AmountRow>
             <SliderRow>
               <Slider
                 type="range"
-                min={0}
-                max={100}
+                min={MIN_BET}
+                max={MAX_BET}
+                step={0.001}
                 value={amount}
                 onChange={e => handleAmountChange(Number(e.target.value))}
               />
             </SliderRow>
-            <ConfirmButton $side={modal}>
+            {error && <div style={{color: '#ff4d4f', marginBottom: 8}}>{error}</div>}
+            <ConfirmButton $side={modal} disabled={!!error}>
               Buy {modal === "yes" ? "Yes" : "No"}
               <ToWin>
                 To win {getToWin()}
@@ -102,226 +184,422 @@ export function MarketCard({ market }: Props) {
 
 const Card = styled.div`
   background: ${({ theme }) => theme.colors.card};
-  border-radius: ${({ theme }) => theme.borderRadius};
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  padding: 20px;
-  margin: 8px 0;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  border: 1px solid ${({ theme }) => theme.colors.border};
   cursor: pointer;
-  transition: box-shadow 0.2s;
+  transition: all 0.2s;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  min-height: 220px;
-  height: auto;
+  overflow: hidden;
   position: relative;
+  
   &:hover {
-    box-shadow: 0 4px 16px rgba(91,140,255,0.15);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.15);
   }
+  
   @media (max-width: 600px) {
-    padding: 10px;
-    margin: 4px 0;
-    min-height: 140px;
-    height: auto;
+    border-radius: 16px;
+  }
+`;
+
+const CardHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 16px 24px;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+  @media (max-width: 600px) {
+    padding: 16px 20px 12px 20px;
+  }
+`;
+
+const StatusBadge = styled.div<{ $status: string }>`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  
+  background: ${({ $status, theme }) => {
+    if ($status === "green") return `${theme.colors.accentGreen}20`;
+    if ($status === "red") return `${theme.colors.accentRed}20`;
+    return `${theme.colors.primary}20`;
+  }};
+  
+  color: ${({ $status, theme }) => {
+    if ($status === "green") return theme.colors.accentGreen;
+    if ($status === "red") return theme.colors.accentRed;
+    return theme.colors.primary;
+  }};
+  
+  svg {
+    font-size: 12px;
+  }
+`;
+
+const TimeLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 12px;
+  font-weight: 500;
+  
+  svg {
+    font-size: 12px;
+  }
+`;
+
+const CardContent = styled.div`
+  padding: 20px 24px;
+  flex: 1;
+  @media (max-width: 600px) {
+    padding: 16px 20px;
   }
 `;
 
 const Title = styled.h3`
   color: ${({ theme }) => theme.colors.primary};
-  margin: 0 0 4px 0;
-  font-size: 1.08rem;
+  margin: 0 0 8px 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.4;
   @media (max-width: 600px) {
-    font-size: 0.98rem;
-    margin-bottom: 2px;
+    font-size: 1.1rem;
+    margin-bottom: 6px;
   }
 `;
 
 const Description = styled.p`
   color: ${({ theme }) => theme.colors.textSecondary};
-  margin: 0 0 8px 0;
-  font-size: 0.97rem;
+  margin: 0 0 20px 0;
+  font-size: 14px;
+  line-height: 1.5;
   @media (max-width: 600px) {
-    font-size: 0.88rem;
-    margin-bottom: 3px;
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+`;
+
+const StatsRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+  @media (max-width: 600px) {
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+`;
+
+const Stat = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: ${({ theme }) => theme.colors.background};
+  border-radius: 12px;
+  @media (max-width: 600px) {
+    padding: 10px;
+    gap: 8px;
+  }
+`;
+
+const StatIcon = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: ${({ theme }) => `${theme.colors.primary}20`};
+  color: ${({ theme }) => theme.colors.primary};
+  border-radius: 8px;
+  font-size: 14px;
+  flex-shrink: 0;
+  @media (max-width: 600px) {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+`;
+
+const StatContent = styled.div`
+  flex: 1;
+`;
+
+const StatValue = styled.div`
+  color: ${({ theme }) => theme.colors.primary};
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 2px;
+  @media (max-width: 600px) {
+    font-size: 14px;
+  }
+`;
+
+const StatLabel = styled.div`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  @media (max-width: 600px) {
+    font-size: 10px;
   }
 `;
 
 const InfoRow = styled.div`
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 16px;
-  margin-bottom: 8px;
   @media (max-width: 600px) {
-    gap: 6px;
-    flex-direction: column;
-    margin-bottom: 4px;
+    gap: 12px;
   }
 `;
 
 const Info = styled.div`
   display: flex;
   flex-direction: column;
+  gap: 4px;
 `;
 
-const Label = styled.span`
+const InfoLabel = styled.span`
   color: ${({ theme }) => theme.colors.textSecondary};
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 `;
 
-const Value = styled.span`
+const InfoValue = styled.span`
   color: ${({ theme }) => theme.colors.text};
-  font-weight: bold;
-  font-size: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  @media (max-width: 600px) {
+    font-size: 13px;
+  }
+`;
+
+const CardFooter = styled.div`
+  padding: 20px 24px;
+  border-top: 1px solid ${({ theme }) => theme.colors.border};
+  @media (max-width: 600px) {
+    padding: 16px 20px;
+  }
 `;
 
 const ButtonRow = styled.div`
   display: flex;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 12px;
+  @media (max-width: 600px) {
+    gap: 8px;
+  }
 `;
 
 const BuyYesButton = styled.button`
   flex: 1;
-  background: #1ecb81;
-  color: #fff;
+  background: ${({ theme }) => theme.colors.accentGreen};
+  color: white;
   border: none;
-  border-radius: 8px;
-  padding: 8px 0;
-  font-weight: bold;
-  font-size: 0.95rem;
+  border-radius: 12px;
+  padding: 14px 0;
+  font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
-  transition: background 0.2s;
-  &:hover { background: #17a96b; }
+  transition: all 0.2s;
+  
+  &:hover {
+    background: #17a96b;
+    transform: translateY(-1px);
+  }
+  
+  @media (max-width: 600px) {
+    padding: 12px 0;
+    font-size: 13px;
+  }
 `;
 
 const BuyNoButton = styled.button`
   flex: 1;
-  background: #e74c3c;
-  color: #fff;
+  background: ${({ theme }) => theme.colors.accentRed};
+  color: white;
   border: none;
-  border-radius: 8px;
-  padding: 8px 0;
-  font-weight: bold;
-  font-size: 0.95rem;
+  border-radius: 12px;
+  padding: 14px 0;
+  font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
-  transition: background 0.2s;
-  &:hover { background: #c0392b; }
+  transition: all 0.2s;
+  
+  &:hover {
+    background: #c0392b;
+    transform: translateY(-1px);
+  }
+  
+  @media (max-width: 600px) {
+    padding: 12px 0;
+    font-size: 13px;
+  }
 `;
 
 const FullCoverModal = styled.div<{ $open: boolean }>`
   position: absolute;
-  left: 0; top: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  background: ${({ theme }) => theme.colors.card};
+  background: rgba(0, 0, 0, 0.8);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   z-index: 10;
-  opacity: ${props => props.$open ? 1 : 0};
-  pointer-events: ${props => props.$open ? 'auto' : 'none'};
-  transform: ${props => props.$open ? 'scale(1)' : 'scale(0.98)'};
-  transition: opacity 0.25s cubic-bezier(.4,2,.6,1), transform 0.25s cubic-bezier(.4,2,.6,1);
-  overflow: hidden;
-  border-radius: ${({ theme }) => theme.borderRadius};
+  opacity: ${({ $open }) => $open ? 1 : 0};
+  visibility: ${({ $open }) => $open ? 'visible' : 'hidden'};
+  transition: all 0.3s;
 `;
 
 const ModalContent = styled.div`
-  width: 100%;
-  height: auto;
-  padding: 16px;
-  border-radius: 0;
-  box-shadow: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0;
-  box-sizing: border-box;
-  background: transparent;
+  background: ${({ theme }) => theme.colors.card};
+  border-radius: 20px;
+  padding: 32px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  @media (max-width: 600px) {
+    padding: 24px;
+    border-radius: 16px;
+  }
 `;
 
 const ModalHeader = styled.div`
-  width: 100%;
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  margin-bottom: 4px;
+  align-items: center;
+  margin-bottom: 24px;
 `;
 
 const ModalTitle = styled.h3`
   color: ${({ theme }) => theme.colors.primary};
-  margin-bottom: 12px;
-  font-size: 1.1rem;
-`;
-
-const AmountRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  margin-bottom: 2px;
-`;
-
-const AmountInput = styled.input`
-  width: 70px;
-  padding: 8px;
-  border-radius: 8px;
-  border: 1px solid #333;
-  background: ${({ theme }) => theme.colors.background};
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 1rem;
-`;
-
-const AmountButton = styled.button`
-  background: #23272f;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 6px 12px;
-  font-size: 1rem;
-  cursor: pointer;
-  &:hover { background: #444; }
-`;
-
-const SliderRow = styled.div`
-  width: 100%;
-  margin-bottom: 4px;
-  display: flex;
-  align-items: center;
-`;
-
-const Slider = styled.input`
-  width: 100%;
-  accent-color: #8b5cf6;
-`;
-
-const ConfirmButton = styled.button<{ $side: "yes" | "no" | null }>`
-  background: ${({ $side }) => $side === "yes" ? "#1ecb81" : $side === "no" ? "#e74c3c" : "#888"};
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 0 6px 0;
-  font-weight: bold;
-  font-size: 1.05rem;
-  width: 100%;
-  cursor: pointer;
-  margin-bottom: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
-
-const ToWin = styled.span`
-  font-size: 0.95rem;
-  font-weight: 400;
-  color: #e0e0e0;
-  margin-top: 2px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0;
+  flex: 1;
+  margin-right: 16px;
 `;
 
 const CloseButton = styled.button`
   background: none;
   border: none;
-  color: #888;
-  font-size: 1.5rem;
+  font-size: 24px;
+  color: ${({ theme }) => theme.colors.textSecondary};
   cursor: pointer;
-  margin-left: 8px;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: background 0.2s;
+  
+  &:hover {
+    background: ${({ theme }) => theme.colors.background};
+  }
+`;
+
+const AmountRow = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+`;
+
+const AmountInput = styled.input`
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid ${({ theme }) => theme.colors.border};
+  border-radius: 12px;
+  background: ${({ theme }) => theme.colors.background};
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 16px;
+  
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+  }
+`;
+
+const AmountButton = styled.button`
+  padding: 12px 16px;
+  background: ${({ theme }) => theme.colors.primary};
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  
+  &:hover {
+    background: ${({ theme }) => theme.colors.accentGreen};
+  }
+`;
+
+const SliderRow = styled.div`
+  margin-bottom: 24px;
+`;
+
+const Slider = styled.input`
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: ${({ theme }) => theme.colors.border};
+  outline: none;
+  
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: ${({ theme }) => theme.colors.primary};
+    cursor: pointer;
+  }
+  
+  &::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: ${({ theme }) => theme.colors.primary};
+    cursor: pointer;
+    border: none;
+  }
+`;
+
+const ConfirmButton = styled.button<{ $side: string }>`
+  width: 100%;
+  background: ${({ $side, theme }) => $side === "yes" ? theme.colors.accentGreen : theme.colors.accentRed};
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  }
+`;
+
+const ToWin = styled.div`
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 4px;
+  opacity: 0.9;
 `; 

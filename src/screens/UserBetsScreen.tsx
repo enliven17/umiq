@@ -2,19 +2,52 @@
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import styled from "styled-components";
-import { useAccount } from 'wagmi';
-import { FaTrophy, FaClock, FaCheckCircle, FaTimesCircle, FaCoins } from 'react-icons/fa';
+import { useState, useEffect } from 'react';
+import { FaTrophy, FaClock, FaCheckCircle, FaTimesCircle, FaCoins, FaBrain } from 'react-icons/fa';
 
 export default function UserBetsScreen() {
-  const { address } = useAccount();
+  const [connectedAddress, setConnectedAddress] = useState<string | null>(null);
+  
+  // Cüzdan bağlantı durumunu takip et
+  useEffect(() => {
+    const checkWalletConnection = () => {
+      if (window.ethereum && window.ethereum.selectedAddress) {
+        setConnectedAddress(window.ethereum.selectedAddress);
+      } else {
+        setConnectedAddress(null);
+      }
+    };
+
+    checkWalletConnection();
+    
+    // Cüzdan değişikliklerini dinle
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', checkWalletConnection);
+      window.ethereum.on('connect', checkWalletConnection);
+      window.ethereum.on('disconnect', () => setConnectedAddress(null));
+    }
+
+    return () => {
+      if (window.ethereum) {
+        window.ethereum.removeListener('accountsChanged', checkWalletConnection);
+        window.ethereum.removeListener('connect', checkWalletConnection);
+        window.ethereum.removeListener('disconnect', () => setConnectedAddress(null));
+      }
+    };
+  }, []);
+
   const markets = useSelector((state: RootState) => state.markets.markets);
   const rewards = useSelector((state: RootState) => state.markets.claimableRewards);
+  const defiQ = useSelector((state: RootState) => {
+    if (!connectedAddress) return 0;
+    return state.markets.userDefiQ[connectedAddress] || 0;
+  });
 
   // Kullanıcının tüm bahisleri
-  const myBets = markets.flatMap(m => m.bets.filter(b => b.userId === address).map(b => ({ ...b, market: m })));
+  const myBets = connectedAddress ? markets.flatMap(m => m.bets.filter(b => b.userId === connectedAddress).map(b => ({ ...b, market: m }))) : [];
 
   // Kazanılan bahisler (ödül claim edilebilir veya edildi)
-  const myRewards = rewards.filter(r => r.userId === address);
+  const myRewards = connectedAddress ? rewards.filter(r => r.userId === connectedAddress) : [];
 
   const getStatusIcon = (status: string, result?: string, side?: string) => {
     if (status === "resolved") {
@@ -35,6 +68,10 @@ export default function UserBetsScreen() {
           <StatItem>
             <StatLabel>Rewards</StatLabel>
             <StatValue>{myRewards.length}</StatValue>
+          </StatItem>
+          <StatItem title="DEFIq: Prediction Intelligence Score">
+            <StatLabel><FaBrain style={{marginRight: 6, color: '#7f5af0'}}/>DEFiq</StatLabel>
+            <StatValue>{defiQ}</StatValue>
           </StatItem>
         </Stats>
       </Header>

@@ -154,6 +154,9 @@ export default function CreateMarketScreen() {
               />
             </FormGroup>
           </BetLimitsRow>
+          <BetLimitsInfo>
+            Minimum bet must be at least 0.001 ETH and maximum bet cannot exceed 5 ETH. The values you select must be within this range.
+          </BetLimitsInfo>
         </FormSection>
 
         <FormSection>
@@ -198,6 +201,9 @@ export default function CreateMarketScreen() {
           <FaPlus />
           Create Market
         </SubmitButton>
+        <InfoBox>
+          Newly created markets must first be approved before going live. If your market is not approved, the ETH you provided for the pool will be refunded to your wallet.
+        </InfoBox>
       </Form>
     </Container>
   );
@@ -476,4 +482,22 @@ const SubmitButton = styled.button`
     padding: 16px 24px;
     font-size: 16px;
   }
+`;
+
+const InfoBox = styled.div`
+  margin-top: 18px;
+  background: ${({ theme }) => `${theme.colors.primary}08`};
+  color: ${({ theme }) => theme.colors.textSecondary};
+  border-left: 4px solid ${({ theme }) => theme.colors.primary};
+  border-radius: 10px;
+  padding: 16px 20px;
+  font-size: 15px;
+  font-weight: 500;
+`;
+
+const BetLimitsInfo = styled.p`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 13px;
+  margin: 8px 0 0 0;
+  padding-left: 2px;
 `; 

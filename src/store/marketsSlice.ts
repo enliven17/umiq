@@ -16,7 +16,10 @@ const initialMarkets: Market[] = [
     status: "open",
     bets: [
       { id: "b1", userId: "user2", marketId: "1", amount: 0.5, side: "yes", timestamp: Date.now() - 1000 * 60 * 60 },
-      { id: "b2", userId: "user3", marketId: "1", amount: 0.2, side: "no", timestamp: Date.now() - 1000 * 60 * 30 }
+      { id: "b2", userId: "user3", marketId: "1", amount: 0.2, side: "no", timestamp: Date.now() - 1000 * 60 * 30 },
+      { id: "b3", userId: "user4", marketId: "1", amount: 0.8, side: "yes", timestamp: Date.now() - 1000 * 60 * 90 },
+      { id: "b4", userId: "user5", marketId: "1", amount: 0.3, side: "no", timestamp: Date.now() - 1000 * 60 * 120 },
+      { id: "b5", userId: "user6", marketId: "1", amount: 0.6, side: "yes", timestamp: Date.now() - 1000 * 60 * 180 }
     ]
   },
   {
@@ -31,7 +34,9 @@ const initialMarkets: Market[] = [
     maxBet: 1,
     status: "open",
     bets: [
-      { id: "b3", userId: "user1", marketId: "2", amount: 0.1, side: "yes", timestamp: Date.now() - 1000 * 60 * 60 * 2 }
+      { id: "b6", userId: "user1", marketId: "2", amount: 0.1, side: "yes", timestamp: Date.now() - 1000 * 60 * 60 * 2 },
+      { id: "b7", userId: "user3", marketId: "2", amount: 0.3, side: "no", timestamp: Date.now() - 1000 * 60 * 60 * 3 },
+      { id: "b8", userId: "user5", marketId: "2", amount: 0.2, side: "yes", timestamp: Date.now() - 1000 * 60 * 60 * 4 }
     ]
   },
   {
@@ -45,7 +50,11 @@ const initialMarkets: Market[] = [
     minBet: 0.01,
     maxBet: 2,
     status: "open",
-    bets: [],
+    bets: [
+      { id: "b9", userId: "user2", marketId: "3", amount: 0.4, side: "yes", timestamp: Date.now() - 1000 * 60 * 60 * 5 },
+      { id: "b10", userId: "user4", marketId: "3", amount: 0.2, side: "no", timestamp: Date.now() - 1000 * 60 * 60 * 6 },
+      { id: "b11", userId: "user5", marketId: "3", amount: 0.5, side: "yes", timestamp: Date.now() - 1000 * 60 * 60 * 7 }
+    ]
   },
   {
     id: "4",
@@ -58,7 +67,10 @@ const initialMarkets: Market[] = [
     minBet: 0.01,
     maxBet: 1,
     status: "open",
-    bets: [],
+    bets: [
+      { id: "b12", userId: "user1", marketId: "4", amount: 0.1, side: "no", timestamp: Date.now() - 1000 * 60 * 60 * 8 },
+      { id: "b13", userId: "user3", marketId: "4", amount: 0.2, side: "yes", timestamp: Date.now() - 1000 * 60 * 60 * 9 }
+    ]
   },
   {
     id: "5",
@@ -71,7 +83,11 @@ const initialMarkets: Market[] = [
     minBet: 0.01,
     maxBet: 2,
     status: "open",
-    bets: [],
+    bets: [
+      { id: "b14", userId: "user2", marketId: "5", amount: 0.3, side: "yes", timestamp: Date.now() - 1000 * 60 * 60 * 10 },
+      { id: "b15", userId: "user6", marketId: "5", amount: 0.2, side: "no", timestamp: Date.now() - 1000 * 60 * 60 * 11 },
+      { id: "b16", userId: "user7", marketId: "5", amount: 0.4, side: "yes", timestamp: Date.now() - 1000 * 60 * 60 * 12 }
+    ]
   },
   {
     id: "6",
@@ -84,7 +100,10 @@ const initialMarkets: Market[] = [
     minBet: 0.01,
     maxBet: 2,
     status: "open",
-    bets: [],
+    bets: [
+      { id: "b17", userId: "user1", marketId: "6", amount: 0.2, side: "no", timestamp: Date.now() - 1000 * 60 * 60 * 13 },
+      { id: "b18", userId: "user4", marketId: "6", amount: 0.3, side: "yes", timestamp: Date.now() - 1000 * 60 * 60 * 14 }
+    ]
   },
   {
     id: "7",
@@ -97,7 +116,10 @@ const initialMarkets: Market[] = [
     minBet: 0.01,
     maxBet: 2,
     status: "open",
-    bets: [],
+    bets: [
+      { id: "b19", userId: "user2", marketId: "7", amount: 0.5, side: "yes", timestamp: Date.now() - 1000 * 60 * 60 * 15 },
+      { id: "b20", userId: "user5", marketId: "7", amount: 0.2, side: "no", timestamp: Date.now() - 1000 * 60 * 60 * 16 }
+    ]
   },
   {
     id: "8",
@@ -110,7 +132,10 @@ const initialMarkets: Market[] = [
     minBet: 0.01,
     maxBet: 2,
     status: "open",
-    bets: [],
+    bets: [
+      { id: "b21", userId: "user3", marketId: "8", amount: 0.3, side: "yes", timestamp: Date.now() - 1000 * 60 * 60 * 17 },
+      { id: "b22", userId: "user6", marketId: "8", amount: 0.4, side: "no", timestamp: Date.now() - 1000 * 60 * 60 * 18 }
+    ]
   },
 ];
 
@@ -124,11 +149,23 @@ interface ClaimableReward {
 interface MarketsState {
   markets: Market[];
   claimableRewards: ClaimableReward[];
+  userDefiQ: Record<string, number>; // address -> DEFiq puanı
 }
 
 const initialState: MarketsState = {
   markets: initialMarkets,
-  claimableRewards: []
+  claimableRewards: [],
+  userDefiQ: {
+    // Demo kullanıcılar için temsili DEFiq puanları
+    "user1": 85,
+    "user2": 120,
+    "user3": 65,
+    "user4": 95,
+    "user5": 150,
+    "user6": 75,
+    "user7": 110,
+    "user8": 45,
+  },
 };
 
 const marketsSlice = createSlice({
@@ -162,6 +199,9 @@ const marketsSlice = createSlice({
               amount: pay,
               claimed: false
             });
+            // DEFiq puanını güncelle (ör: +10 her kazanç için)
+            if (!state.userDefiQ[bet.userId]) state.userDefiQ[bet.userId] = 0;
+            state.userDefiQ[bet.userId] += 10;
           });
         }
       }
@@ -171,10 +211,13 @@ const marketsSlice = createSlice({
       if (reward) {
         reward.claimed = true;
       }
+    },
+    setUserDefiQ(state, action: PayloadAction<{ address: string; score: number }>) {
+      state.userDefiQ[action.payload.address] = action.payload.score;
     }
   }
 });
 
-export const { addMarket, addBet, closeMarket, claimReward } = marketsSlice.actions;
+export const { addMarket, addBet, closeMarket, claimReward, setUserDefiQ } = marketsSlice.actions;
 export default marketsSlice.reducer;
 export type { ClaimableReward }; 

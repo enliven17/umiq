@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { ethers } from 'ethers';
+import { useDispatch } from 'react-redux';
+import { setUserDefiQ } from '@/store/marketsSlice';
 
 function shortenAddress(address: string) {
   return address.slice(0, 6) + '...' + address.slice(-4);
@@ -11,6 +13,7 @@ export function ConnectWalletButton() {
   const [address, setAddress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
 
   const connectWallet = async () => {
     setError(null);
@@ -23,7 +26,12 @@ export function ConnectWalletButton() {
       }
       const provider = new ethers.BrowserProvider(window.ethereum);
       const accounts = await provider.send('eth_requestAccounts', []);
-      setAddress(accounts[0]);
+      const userAddress = accounts[0];
+      setAddress(userAddress);
+      
+      // Kullanıcı için rastgele bir DEFiq puanı oluştur (50-200 arası)
+      const randomDefiQ = Math.floor(Math.random() * 151) + 50;
+      dispatch(setUserDefiQ({ address: userAddress, score: randomDefiQ }));
     } catch (err: any) {
       setError('Connection rejected or an error occurred.');
     }
@@ -31,6 +39,10 @@ export function ConnectWalletButton() {
   };
 
   const disconnectWallet = () => {
+    if (address) {
+      // Cüzdan bağlantısı kesildiğinde DEFiq puanını da sıfırla
+      dispatch(setUserDefiQ({ address, score: 0 }));
+    }
     setAddress(null);
     setError(null);
   };
@@ -40,7 +52,7 @@ export function ConnectWalletButton() {
       <ModernConnectButtonWrapper>
         {address ? (
           <ConnectedBox>
-            {shortenAddress(address)}
+            <AddressText>{shortenAddress(address)}</AddressText>
             <DisconnectButton onClick={disconnectWallet} title="Disconnect Wallet">Disconnect</DisconnectButton>
           </ConnectedBox>
         ) : (
@@ -91,13 +103,25 @@ const ConnectedBox = styled.div`
   font-size: 1rem;
   font-weight: 600;
   border-radius: 10px;
-  padding: 8px 18px;
+  padding: 8px 12px;
   background: ${({ theme }) => theme.colors.primary};
   color: #fff;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
+  justify-content: flex-start;
+  gap: 8px;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const AddressText = styled.span`
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const DisconnectButton = styled.button`
@@ -105,10 +129,10 @@ const DisconnectButton = styled.button`
   color: #fff;
   border: none;
   border-radius: 8px;
-  padding: 4px 12px;
-  font-size: 0.95rem;
+  padding: 3px 8px;
+  font-size: 0.9rem;
   font-weight: 500;
-  margin-left: 8px;
+  margin-left: 4px;
   cursor: pointer;
   transition: background 0.2s;
   &:hover {
