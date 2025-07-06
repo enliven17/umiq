@@ -37,6 +37,7 @@ const NavBar = styled.nav`
   width: 100vw;
   box-sizing: border-box;
   z-index: 100;
+  position: relative;
 
   @media (max-width: 800px) {
     flex-direction: column;
@@ -47,16 +48,23 @@ const NavBar = styled.nav`
 `;
 
 const NavLinks = styled.div`
-  flex: 1;
+  position: absolute;
+  left: 50%;
+  top: 0;
+  height: 100%;
+  transform: translateX(-50%);
   display: flex;
   gap: 32px;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   @media (max-width: 800px) {
+    position: static;
+    transform: none;
     gap: 16px;
     width: 100%;
     justify-content: center;
     flex-wrap: wrap;
+    height: auto;
   }
 `;
 
