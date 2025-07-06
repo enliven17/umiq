@@ -6,43 +6,22 @@ import { ConnectWalletButton } from "@/components/ConnectWalletButton";
 import { FaSearch, FaBrain } from 'react-icons/fa';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
-import { useState, useEffect } from 'react';
+import { useWalletConnection } from '@/hooks/useWalletConnection';
 
 export function MainNav() {
   const pathname = usePathname();
-  const [connectedAddress, setConnectedAddress] = useState<string | null>(null);
-  
-  // Cüzdan bağlantı durumunu takip et
-  useEffect(() => {
-    const checkWalletConnection = () => {
-      if (window.ethereum && window.ethereum.selectedAddress) {
-        setConnectedAddress(window.ethereum.selectedAddress);
-      } else {
-        setConnectedAddress(null);
-      }
-    };
-
-    checkWalletConnection();
-    
-    // Cüzdan değişikliklerini dinle
-    if (window.ethereum) {
-      window.ethereum.on('accountsChanged', checkWalletConnection);
-      window.ethereum.on('connect', checkWalletConnection);
-      window.ethereum.on('disconnect', () => setConnectedAddress(null));
-    }
-
-    return () => {
-      if (window.ethereum) {
-        window.ethereum.removeListener('accountsChanged', checkWalletConnection);
-        window.ethereum.removeListener('connect', checkWalletConnection);
-        window.ethereum.removeListener('disconnect', () => setConnectedAddress(null));
-      }
-    };
-  }, []);
+  const { address: connectedAddress } = useWalletConnection();
 
   const defiQ = useSelector((state: RootState) => {
     if (!connectedAddress) return 0;
-    return state.markets.userDefiQ[connectedAddress] || 0;
+    const reduxScore = state.markets.userDefiQ[connectedAddress];
+    if (reduxScore !== undefined) return reduxScore;
+    // Redux'ta yoksa localStorage'dan oku
+    if (typeof window !== 'undefined') {
+      const localScore = localStorage.getItem(`defiq_${connectedAddress}`);
+      if (localScore) return Number(localScore);
+    }
+    return 0;
   });
 
   return (
@@ -261,6 +240,14 @@ const DefiQBox = styled.div`
   color: ${({ theme }) => theme.colors.primary};
   min-width: 60px;
   height: 38px;
+  border: 1px solid ${({ theme }) => theme.colors.primary}33;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 16px rgba(127,90,240,0.20);
+    transform: translateY(-1px);
+  }
+  
   @media (max-width: 800px) {
     padding: 4px 8px;
     font-size: 0.98rem;
@@ -272,4 +259,7 @@ const DefiQValue = styled.span`
   font-weight: 700;
   color: ${({ theme }) => theme.colors.primary};
   font-size: 1.08em;
+  text-shadow: 0 1px 2px rgba(127,90,240,0.3);
+  min-width: 30px;
+  text-align: center;
 `;

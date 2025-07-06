@@ -1,23 +1,26 @@
 import { useState, useEffect } from 'react';
-import { ethers } from 'ethers';
+import { useDispatch } from 'react-redux';
+import { setUserDefiQ } from '@/store/marketsSlice';
 
-// TypeScript için ethereum window property'sini tanımla
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
-
-export function useWalletSigner() {
+export function useWalletConnection() {
   const [address, setAddress] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
 
-  // Cüzdan bağlantı durumunu takip et
+  // Wallet connection state'ini takip et
   useEffect(() => {
     const checkWalletConnection = () => {
       if (window.ethereum && window.ethereum.selectedAddress) {
-        setAddress(window.ethereum.selectedAddress);
+        const currentAddress = window.ethereum.selectedAddress;
+        setAddress(currentAddress);
         setIsConnected(true);
+        
+        // DeFiQ puanını yükle
+        const existingDefiQ = localStorage.getItem(`defiq_${currentAddress}`);
+        if (existingDefiQ) {
+          dispatch(setUserDefiQ({ address: currentAddress, score: Number(existingDefiQ) }));
+        }
       } else {
         setAddress(null);
         setIsConnected(false);
@@ -26,7 +29,7 @@ export function useWalletSigner() {
 
     checkWalletConnection();
     
-    // Cüzdan değişikliklerini dinle
+    // Wallet değişikliklerini dinle
     if (window.ethereum) {
       window.ethereum.on('accountsChanged', checkWalletConnection);
       window.ethereum.on('connect', checkWalletConnection);
@@ -46,18 +49,12 @@ export function useWalletSigner() {
         });
       }
     };
-  }, []);
+  }, [dispatch]);
 
-  // signature almak için fonksiyon döndür
-  const getSignature = async (message: string) => {
-    if (!window.ethereum || !address) {
-      throw new Error('Wallet not connected');
-    }
-    
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const signer = await provider.getSigner();
-    return await signer.signMessage(message);
+  return {
+    address,
+    isConnected,
+    loading,
+    setLoading
   };
-
-  return { address, getSignature, isConnected };
 } 

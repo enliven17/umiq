@@ -4,16 +4,16 @@ import styled from 'styled-components';
 import { ethers } from 'ethers';
 import { useDispatch } from 'react-redux';
 import { setUserDefiQ } from '@/store/marketsSlice';
+import { useWalletConnection } from '@/hooks/useWalletConnection';
 
 function shortenAddress(address: string) {
   return address.slice(0, 6) + '...' + address.slice(-4);
 }
 
 export function ConnectWalletButton() {
-  const [address, setAddress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
+  const { address, loading, setLoading } = useWalletConnection();
 
   const connectWallet = async () => {
     setError(null);
@@ -27,23 +27,63 @@ export function ConnectWalletButton() {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const accounts = await provider.send('eth_requestAccounts', []);
       const userAddress = accounts[0];
-      setAddress(userAddress);
       
-      // Kullanıcı için rastgele bir DEFiq puanı oluştur (50-200 arası)
-      const randomDefiQ = Math.floor(Math.random() * 151) + 50;
-      dispatch(setUserDefiQ({ address: userAddress, score: randomDefiQ }));
-    } catch (err: any) {
+      // Önce localStorage'dan mevcut DeFiQ puanını kontrol et
+      const existingDefiQ = localStorage.getItem(`defiq_${userAddress}`);
+      let defiQScore: number;
+      
+      if (existingDefiQ) {
+        // Mevcut puan varsa onu kullan
+        defiQScore = Number(existingDefiQ);
+      } else {
+        // Yoksa yeni rastgele puan oluştur (50-200 arası)
+        defiQScore = Math.floor(Math.random() * 151) + 50;
+        localStorage.setItem(`defiq_${userAddress}`, String(defiQScore));
+      }
+      
+      // Redux store'a kaydet
+      dispatch(setUserDefiQ({ address: userAddress, score: defiQScore }));
+      
+    } catch (error: unknown) {
+      console.error('Wallet connection error:', error);
       setError('Connection rejected or an error occurred.');
     }
     setLoading(false);
   };
 
-  const disconnectWallet = () => {
+  const disconnectWallet = async () => {
     if (address) {
-      // Cüzdan bağlantısı kesildiğinde DEFiq puanını da sıfırla
       dispatch(setUserDefiQ({ address, score: 0 }));
+      localStorage.removeItem(`defiq_${address}`);
+      
+      // MetaMask'tan bağlantıyı kes
+      if (window.ethereum) {
+        try {
+          // MetaMask'ın disconnect metodunu çağır
+          await window.ethereum.request({
+            method: 'wallet_requestPermissions',
+            params: [{ eth_accounts: {} }]
+          });
+          
+          // Başarılı disconnect sonrası state'i temizle
+          setError(null);
+          
+          // Kısa bir gecikme sonrası sayfayı yenile (daha smooth deneyim için)
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        } catch (error) {
+          console.log('Wallet disconnect error:', error);
+          // Hata durumunda da sayfayı yenile
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        }
+      } else {
+        // Ethereum provider yoksa sadece state'i temizle
+        setError(null);
+      }
     }
-    setAddress(null);
     setError(null);
   };
 
@@ -53,7 +93,7 @@ export function ConnectWalletButton() {
         {address ? (
           <ConnectedBox>
             <AddressText>{shortenAddress(address)}</AddressText>
-            <DisconnectButton onClick={disconnectWallet} title="Disconnect Wallet">Disconnect</DisconnectButton>
+            <DisconnectButton onClick={disconnectWallet} title="Disconnect from app (to fully disconnect, use your wallet UI)">Disconnect</DisconnectButton>
           </ConnectedBox>
         ) : (
           <CustomButton onClick={connectWallet} disabled={loading}>

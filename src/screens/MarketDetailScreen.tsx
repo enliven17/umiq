@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
@@ -7,7 +7,6 @@ import { addBet, closeMarket, claimReward } from "@/store/marketsSlice";
 import { Market, BetSide } from "@/types/market";
 import styled from "styled-components";
 import { v4 as uuidv4 } from "uuid";
-import { useAccount } from 'wagmi';
 import { FaCoins, FaCalendarAlt, FaCheckCircle, FaTimesCircle, FaClock, FaTrophy, FaUser, FaUserCircle } from 'react-icons/fa';
 
 const PieChartWrapper = styled.div`
@@ -66,9 +65,47 @@ export default function MarketDetailScreen() {
   const [side, setSide] = useState<BetSide>("yes");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [connectedAddress, setConnectedAddress] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  
+  // Cüzdan bağlantı durumunu takip et
+  useEffect(() => {
+    const checkWalletConnection = () => {
+      if (window.ethereum && window.ethereum.selectedAddress) {
+        setConnectedAddress(window.ethereum.selectedAddress);
+        setIsConnected(true);
+      } else {
+        setConnectedAddress(null);
+        setIsConnected(false);
+      }
+    };
+
+    checkWalletConnection();
+    
+    // Cüzdan değişikliklerini dinle
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', checkWalletConnection);
+      window.ethereum.on('connect', checkWalletConnection);
+      window.ethereum.on('disconnect', () => {
+        setConnectedAddress(null);
+        setIsConnected(false);
+      });
+    }
+
+    return () => {
+      if (window.ethereum) {
+        window.ethereum.removeListener('accountsChanged', checkWalletConnection);
+        window.ethereum.removeListener('connect', checkWalletConnection);
+        window.ethereum.removeListener('disconnect', () => {
+          setConnectedAddress(null);
+          setIsConnected(false);
+        });
+      }
+    };
+  }, []);
+
   const rewards = useSelector((state: RootState) => state.markets.claimableRewards);
-  const { address, isConnected } = useAccount();
-  const myReward = rewards.find(r => r.userId === address && r.marketId === market?.id);
+  const myReward = rewards.find(r => r.userId === connectedAddress && r.marketId === market?.id);
   const [comments, setComments] = useState([
     { id: 1, user: "Alice", text: "I think this market is very interesting!", date: "2024-07-06 20:00" },
     { id: 2, user: "Bob", text: "My bet is on YES 🚀", date: "2024-07-06 20:10" },
@@ -79,14 +116,13 @@ export default function MarketDetailScreen() {
   const MIN_BET = 0.001;
   const MAX_BET = 5;
 
-  if (!market) return <PageContainer><CenterBox>Market not found.</CenterBox></PageContainer>;
+  if (!market) return <PageContainer><div style={{ textAlign: 'center', padding: '40px' }}>Market not found.</div></PageContainer>;
 
   const totalYes = market.bets.filter(b => b.side === "yes").reduce((sum, b) => sum + b.amount, 0);
   const totalNo = market.bets.filter(b => b.side === "no").reduce((sum, b) => sum + b.amount, 0);
   const totalPool = market.initialPool + market.bets.reduce((sum, b) => sum + b.amount, 0);
   const totalBets = market.bets.length;
   const timeLeft = market.closesAt - Date.now();
-  const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
 
   const handleBet = (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,13 +133,13 @@ export default function MarketDetailScreen() {
       setError(`Bet amount must be between ${market.minBet} - ${market.maxBet} ETH.`);
       return;
     }
-    if (!isConnected || !address) {
+    if (!isConnected || !connectedAddress) {
       setError("Wallet is not connected.");
       return;
     }
     dispatch(addBet({
       id: uuidv4(),
-      userId: address,
+      userId: connectedAddress,
       marketId: market.id,
       amount: betAmount,
       side,
@@ -118,7 +154,9 @@ export default function MarketDetailScreen() {
   };
 
   const handleClaim = () => {
-    dispatch(claimReward({ userId: address, marketId: market.id }));
+    if (connectedAddress) {
+      dispatch(claimReward({ userId: connectedAddress, marketId: market.id }));
+    }
   };
 
   const getStatusBadge = () => {
