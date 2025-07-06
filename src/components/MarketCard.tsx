@@ -104,7 +104,7 @@ const Card = styled.div`
   background: ${({ theme }) => theme.colors.card};
   border-radius: ${({ theme }) => theme.borderRadius};
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  padding: 16px;
+  padding: 20px;
   margin: 8px 0;
   cursor: pointer;
   transition: box-shadow 0.2s;
@@ -118,7 +118,7 @@ const Card = styled.div`
     box-shadow: 0 4px 16px rgba(91,140,255,0.15);
   }
   @media (max-width: 600px) {
-    padding: 8px;
+    padding: 10px;
     margin: 4px 0;
     min-height: 140px;
     height: auto;
@@ -127,30 +127,32 @@ const Card = styled.div`
 
 const Title = styled.h3`
   color: ${({ theme }) => theme.colors.primary};
-  margin: 0 0 6px 0;
-  font-size: 1rem;
+  margin: 0 0 4px 0;
+  font-size: 1.08rem;
   @media (max-width: 600px) {
-    font-size: 0.92rem;
+    font-size: 0.98rem;
     margin-bottom: 2px;
   }
 `;
 
 const Description = styled.p`
   color: ${({ theme }) => theme.colors.textSecondary};
-  margin: 0 0 10px 0;
-  font-size: 0.92rem;
+  margin: 0 0 8px 0;
+  font-size: 0.97rem;
   @media (max-width: 600px) {
-    font-size: 0.85rem;
-    margin-bottom: 4px;
+    font-size: 0.88rem;
+    margin-bottom: 3px;
   }
 `;
 
 const InfoRow = styled.div`
   display: flex;
   gap: 16px;
+  margin-bottom: 8px;
   @media (max-width: 600px) {
     gap: 6px;
     flex-direction: column;
+    margin-bottom: 4px;
   }
 `;
 

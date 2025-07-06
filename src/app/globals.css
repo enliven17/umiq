@@ -40,3 +40,35 @@ a {
     color-scheme: dark;
   }
 }
+
+/* RainbowKit modal override */
+div[class*="RainbowKitModal"] {
+  max-width: 350px !important;
+  margin: 40px auto !important;
+  left: 0 !important;
+  right: 0 !important;
+  border-radius: 16px !important;
+  font-family: 'Inter', Arial, sans-serif !important;
+}
+
+div[class*="RainbowKitModal"] h1,
+div[class*="RainbowKitModal"] h2 {
+  font-size: 1.2rem !important;
+  margin-bottom: 8px !important;
+}
+
+div[class*="RainbowKitModal"] button {
+  font-size: 1rem !important;
+  border-radius: 10px !important;
+}
+
+div[class*="RainbowKitModal"] img {
+  border-radius: 10px !important;
+}
+
+@media (max-width: 600px) {
+  div[class*="RainbowKitModal"] {
+    max-width: 95vw !important;
+    margin: 10vw auto !important;
+  }
+}

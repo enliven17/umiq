@@ -17,9 +17,9 @@ export default function HomePage() {
       <Container>
         <Title>Trending Markets</Title>
         <FilterBar>
-          <FilterButton $active={filter === "open"} onClick={() => setFilter("open")}>Açık</FilterButton>
-          <FilterButton $active={filter === "closed"} onClick={() => setFilter("closed")}>Kapalı/Çözüldü</FilterButton>
-          <FilterButton $active={filter === "all"} onClick={() => setFilter("all")}>Tümü</FilterButton>
+          <FilterButton $active={filter === "open"} onClick={() => setFilter("open")}>Open</FilterButton>
+          <FilterButton $active={filter === "closed"} onClick={() => setFilter("closed")}>Closed/Resolved</FilterButton>
+          <FilterButton $active={filter === "all"} onClick={() => setFilter("all")}>All</FilterButton>
         </FilterBar>
         <MarketsGrid>
           {filteredMarkets.map(market => (
@@ -32,7 +32,7 @@ export default function HomePage() {
 }
 
 const Container = styled.div`
-  max-width: 900px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 32px 16px;
   @media (max-width: 600px) {
@@ -44,6 +44,7 @@ const Title = styled.h1`
   color: ${({ theme }) => theme.colors.primary};
   margin-bottom: 24px;
   font-size: 2.2rem;
+  text-align: center;
   @media (max-width: 600px) {
     font-size: 1.3rem;
     margin-bottom: 16px;
@@ -53,13 +54,14 @@ const Title = styled.h1`
 const MarketsGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr;
-  gap: 16px;
+  gap: 32px;
   align-items: stretch;
-  @media (min-width: 700px) {
-    grid-template-columns: 1fr 1fr;
+  @media (min-width: 900px) {
+    grid-template-columns: repeat(4, 1fr);
   }
   @media (max-width: 600px) {
-    gap: 8px;
+    gap: 12px;
+    grid-template-columns: 1fr;
   }
 `;
 
