@@ -1,6 +1,5 @@
-import dynamic from "next/dynamic";
-
-const CreateMarketScreen = dynamic(() => import("@/screens/CreateMarketScreen"), { ssr: false });
+"use client";
+import CreateMarketScreen from "@/screens/CreateMarketScreen";
 
 export default function CreateMarketPage() {
   return <CreateMarketScreen />;

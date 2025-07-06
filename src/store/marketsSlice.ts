@@ -33,7 +33,33 @@ const initialMarkets: Market[] = [
     bets: [
       { id: "b3", userId: "user1", marketId: "2", amount: 0.1, side: "yes", timestamp: Date.now() - 1000 * 60 * 60 * 2 }
     ]
-  }
+  },
+  {
+    id: "3",
+    title: "Will BTC reach $100,000 by 2025?",
+    description: "Will Bitcoin (BTC) price hit $100,000 before 2025?",
+    creatorId: "user3",
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 3,
+    closesAt: Date.now() + 1000 * 60 * 60 * 24 * 60,
+    initialPool: 0.8,
+    minBet: 0.01,
+    maxBet: 2,
+    status: "open",
+    bets: [],
+  },
+  {
+    id: "4",
+    title: "Will Apple release a foldable iPhone in 2025?",
+    description: "Will Apple announce and release a foldable iPhone model in 2025?",
+    creatorId: "user4",
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 4,
+    closesAt: Date.now() + 1000 * 60 * 60 * 24 * 90,
+    initialPool: 0.4,
+    minBet: 0.01,
+    maxBet: 1,
+    status: "open",
+    bets: [],
+  },
 ];
 
 interface ClaimableReward {

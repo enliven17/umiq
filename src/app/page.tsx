@@ -3,7 +3,6 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { MarketCard } from "@/components/MarketCard";
 import styled from "styled-components";
-import { MainNav } from "@/navigation";
 import { useState } from "react";
 
 export default function HomePage() {
@@ -15,7 +14,6 @@ export default function HomePage() {
 
   return (
     <>
-      <MainNav />
       <Container>
         <Title>Trending Markets</Title>
         <FilterBar>
@@ -56,6 +54,7 @@ const MarketsGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr;
   gap: 16px;
+  align-items: stretch;
   @media (min-width: 700px) {
     grid-template-columns: 1fr 1fr;
   }

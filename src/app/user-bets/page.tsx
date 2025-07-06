@@ -1,6 +1,5 @@
-import dynamic from "next/dynamic";
-
-const UserBetsScreen = dynamic(() => import("@/screens/UserBetsScreen"), { ssr: false });
+"use client";
+import UserBetsScreen from "@/screens/UserBetsScreen";
 
 export default function UserBetsPage() {
   return <UserBetsScreen />;

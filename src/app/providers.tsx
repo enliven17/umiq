@@ -1,37 +1,38 @@
 "use client";
-import { ReactNode, useEffect } from "react";
+import { ReactNode } from "react";
 import { Provider } from "react-redux";
 import { store } from "@/store";
 import { ThemeProvider } from "styled-components";
 import { theme } from "@/theme";
-import { wagmiConfig, projectId } from "@/config/wagmiConfig";
-import { WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createWeb3Modal } from "@web3modal/wagmi/react";
+import { WagmiConfig } from 'wagmi';
+import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit';
+import { umiDevnet } from '@/config/umiChain';
 
 const queryClient = new QueryClient();
 
-export function AppProviders({ children }: { children: ReactNode }) {
-  useEffect(() => {
-    createWeb3Modal({
-      wagmiConfig,
-      projectId,
-      enableAnalytics: true,
-    });
-  }, []);
+const config = getDefaultConfig({
+  appName: 'UMIq',
+  chains: [umiDevnet],
+  projectId: 'umi-devnet', // Gerekirse gerçek bir WalletConnect projectId eklenebilir
+  ssr: false,
+});
 
+export function AppProviders({ children }: { children: ReactNode }) {
   if (typeof window !== "undefined" && typeof indexedDB === "undefined") {
     // Polyfill indexedDB with a dummy object to avoid ReferenceError
     window.indexedDB = {} as IDBFactory;
   }
 
   return (
-    <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider client={queryClient}>
-        <Provider store={store}>
-          <ThemeProvider theme={theme}>{children}</ThemeProvider>
-        </Provider>
-      </QueryClientProvider>
-    </WagmiProvider>
+    <QueryClientProvider client={queryClient}>
+      <WagmiConfig config={config}>
+        <RainbowKitProvider>
+          <Provider store={store}>
+            <ThemeProvider theme={theme}>{children}</ThemeProvider>
+          </Provider>
+        </RainbowKitProvider>
+      </WagmiConfig>
+    </QueryClientProvider>
   );
 } 
