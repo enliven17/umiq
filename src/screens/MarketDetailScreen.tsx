@@ -21,7 +21,7 @@ export default function MarketDetailScreen() {
   const { address, isConnected } = useAccount();
   const myReward = rewards.find(r => r.userId === address && r.marketId === market.id);
 
-  if (!market) return <Container>Market bulunamadı.</Container>;
+  if (!market) return <Container>Market not found.</Container>;
 
   const totalYes = market.bets.filter(b => b.side === "yes").reduce((sum, b) => sum + b.amount, 0);
   const totalNo = market.bets.filter(b => b.side === "no").reduce((sum, b) => sum + b.amount, 0);
@@ -32,11 +32,11 @@ export default function MarketDetailScreen() {
     setSuccess("");
     const betAmount = Number(amount);
     if (isNaN(betAmount) || betAmount < market.minBet || betAmount > market.maxBet) {
-      setError(`Bahis miktarı ${market.minBet} - ${market.maxBet} ETH aralığında olmalı.`);
+      setError(`Bet amount must be between ${market.minBet} - ${market.maxBet} ETH.`);
       return;
     }
     if (!isConnected || !address) {
-      setError("Cüzdan bağlı değil.");
+      setError("Wallet is not connected.");
       return;
     }
     dispatch(addBet({
@@ -47,7 +47,7 @@ export default function MarketDetailScreen() {
       side,
       timestamp: Date.now()
     }));
-    setSuccess("Bahis başarıyla eklendi!");
+    setSuccess("Bet placed successfully!");
     setAmount("");
   };
 
@@ -73,60 +73,60 @@ export default function MarketDetailScreen() {
           <Value>{market.minBet} / {market.maxBet} ETH</Value>
         </Info>
         <Info>
-          <Label>Kapanış</Label>
+          <Label>Closing</Label>
           <Value>{new Date(market.closesAt).toLocaleString()}</Value>
         </Info>
       </InfoRow>
       <BetStats>
-        <Stat color="green">Evet: {totalYes} ETH</Stat>
-        <Stat color="red">Hayır: {totalNo} ETH</Stat>
+        <Stat color="green">Yes: {totalYes} ETH</Stat>
+        <Stat color="red">No: {totalNo} ETH</Stat>
       </BetStats>
       {market.status === "open" ? (
         <BetForm onSubmit={handleBet}>
-          <Label>Bahis Miktarı (ETH)</Label>
+          <Label>Bet Amount (ETH)</Label>
           <Input type="number" step="0.01" min={market.minBet} max={market.maxBet} value={amount} onChange={e => setAmount(e.target.value)} required />
-          <Label>Taraf</Label>
+          <Label>Side</Label>
           <SideRow>
-            <SideButton type="button" $active={side === "yes"} onClick={() => setSide("yes")}>Evet</SideButton>
-            <SideButton type="button" $active={side === "no"} onClick={() => setSide("no")}>Hayır</SideButton>
+            <SideButton type="button" $active={side === "yes"} onClick={() => setSide("yes")}>Yes</SideButton>
+            <SideButton type="button" $active={side === "no"} onClick={() => setSide("no")}>No</SideButton>
           </SideRow>
           {error && <Error>{error}</Error>}
           {success && <Success>{success}</Success>}
-          <Submit type="submit">Bahis Yap</Submit>
+          <Submit type="submit">Place Bet</Submit>
         </BetForm>
       ) : (
-        <ClosedText>Market kapalı.</ClosedText>
+        <ClosedText>Market closed.</ClosedText>
       )}
       {market.status === "resolved" && (
         <>
           <ResolvedBox>
-            Sonuç: <b>{market.result === "yes" ? "Evet" : "Hayır"}</b>
+            Result: <b>{market.result === "yes" ? "Yes" : "No"}</b>
           </ResolvedBox>
           {myReward && !myReward.claimed && (
             <ClaimBox>
-              Kazancınız: <b>{myReward.amount.toFixed(4)} ETH</b>
-              <ClaimButton onClick={handleClaim}>Ödülü Çek</ClaimButton>
+              Your reward: <b>{myReward.amount.toFixed(4)} ETH</b>
+              <ClaimButton onClick={handleClaim}>Claim Reward</ClaimButton>
             </ClaimBox>
           )}
           {myReward && myReward.claimed && (
-            <ClaimedText>Ödülünüz çekildi!</ClaimedText>
+            <ClaimedText>Your reward has been claimed!</ClaimedText>
           )}
         </>
       )}
       {/* Dummy oracle: marketi kapat butonları (sadece demoUser için) */}
       {market.status === "open" && (
         <OracleBox>
-          <OracleLabel>Market Sonucunu Belirle (Demo Oracle)</OracleLabel>
-          <OracleButton onClick={() => handleCloseMarket("yes")}>Evet</OracleButton>
-          <OracleButton onClick={() => handleCloseMarket("no")}>Hayır</OracleButton>
+          <OracleLabel>Set Market Result (Demo Oracle)</OracleLabel>
+          <OracleButton onClick={() => handleCloseMarket("yes")}>Yes</OracleButton>
+          <OracleButton onClick={() => handleCloseMarket("no")}>No</OracleButton>
         </OracleBox>
       )}
       <BetsList>
-        <BetsTitle>Bahisler</BetsTitle>
-        {market.bets.length === 0 && <NoBets>Henüz bahis yok.</NoBets>}
+        <BetsTitle>Bets</BetsTitle>
+        {market.bets.length === 0 && <NoBets>No bets yet.</NoBets>}
         {market.bets.map(bet => (
           <BetItem key={bet.id}>
-            <span>{bet.side === "yes" ? "Evet" : "Hayır"}</span>
+            <span>{bet.side === "yes" ? "Yes" : "No"}</span>
             <span>{bet.amount} ETH</span>
             <span>{new Date(bet.timestamp).toLocaleString()}</span>
           </BetItem>

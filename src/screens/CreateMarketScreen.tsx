@@ -6,6 +6,7 @@ import { addMarket } from "@/store/marketsSlice";
 import { Market } from "@/types/market";
 import { v4 as uuidv4 } from "uuid";
 import { useAccount } from 'wagmi';
+import { FaPlus, FaCalendarAlt, FaCoins, FaInfoCircle, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
 
 export default function CreateMarketScreen() {
   const dispatch = useDispatch();
@@ -24,28 +25,28 @@ export default function CreateMarketScreen() {
     setError("");
     setSuccess("");
     if (!title.trim() || !description.trim()) {
-      setError("Başlık ve açıklama zorunlu.");
+      setError("Title and description are required.");
       return;
     }
     if (!closesAt) {
-      setError("Kapanış zamanı seçilmeli.");
+      setError("Closing time must be selected.");
       return;
     }
     if (minBet <= 0 || maxBet <= 0 || minBet >= maxBet) {
-      setError("Min/max bahis limitleri geçersiz.");
+      setError("Min/max bet limits are invalid.");
       return;
     }
     if (initialPool < 0.1) {
-      setError("Başlangıç havuzu en az 0.1 ETH olmalı.");
+      setError("Initial pool must be at least 0.1 ETH.");
       return;
     }
     if (!isConnected || !address) {
-      setError("Cüzdan bağlı değil.");
+      setError("Wallet is not connected.");
       return;
     }
     const closesAtTimestamp = new Date(closesAt).getTime();
     if (closesAtTimestamp < Date.now() + 60 * 60 * 1000) {
-      setError("Kapanış zamanı en az 1 saat sonrası olmalı.");
+      setError("Closing time must be at least 1 hour from now.");
       return;
     }
     const newMarket: Market = {
@@ -62,7 +63,7 @@ export default function CreateMarketScreen() {
       bets: []
     };
     dispatch(addMarket(newMarket));
-    setSuccess("Market başarıyla oluşturuldu!");
+    setSuccess("Market created successfully!");
     setTitle("");
     setDescription("");
     setClosesAt("");
@@ -73,135 +74,406 @@ export default function CreateMarketScreen() {
 
   return (
     <Container>
-      <Title>Yeni Market Aç</Title>
+      <Header>
+        <HeaderIcon>
+          <FaPlus />
+        </HeaderIcon>
+        <HeaderContent>
+          <Title>Create New Market</Title>
+          <Subtitle>Start a new prediction market and let users bet on outcomes</Subtitle>
+        </HeaderContent>
+      </Header>
+
       <Form onSubmit={handleSubmit}>
-        <Label>Başlık</Label>
-        <Input value={title} onChange={e => setTitle(e.target.value)} required />
-        <Label>Açıklama</Label>
-        <TextArea value={description} onChange={e => setDescription(e.target.value)} required />
-        <Label>Kapanış Zamanı</Label>
-        <Input type="datetime-local" value={closesAt} onChange={e => setClosesAt(e.target.value)} required />
-        <Row>
-          <Col>
-            <Label>Min Bahis (ETH)</Label>
-            <Input type="number" step="0.01" min={0.01} value={minBet} onChange={e => setMinBet(Number(e.target.value))} required />
-          </Col>
-          <Col>
-            <Label>Max Bahis (ETH)</Label>
-            <Input type="number" step="0.01" min={0.01} value={maxBet} onChange={e => setMaxBet(Number(e.target.value))} required />
-          </Col>
-        </Row>
-        <Label>Başlangıç Havuzu (ETH)</Label>
-        <Input type="number" step="0.01" min={0.1} value={initialPool} onChange={e => setInitialPool(Number(e.target.value))} required />
-        {error && <Error>{error}</Error>}
-        {success && <Success>{success}</Success>}
-        <Submit type="submit">Market Aç</Submit>
+        <FormSection>
+          <SectionTitle>
+            <FaInfoCircle />
+            Market Information
+          </SectionTitle>
+          
+          <FormGroup>
+            <Label>Market Title</Label>
+            <Input 
+              value={title} 
+              onChange={e => setTitle(e.target.value)} 
+              placeholder="e.g., Will Bitcoin reach $100k by end of year?"
+              required 
+            />
+          </FormGroup>
+
+          <FormGroup>
+            <Label>Description</Label>
+            <TextArea 
+              value={description} 
+              onChange={e => setDescription(e.target.value)} 
+              placeholder="Provide a clear description of what users are betting on..."
+              required 
+            />
+          </FormGroup>
+        </FormSection>
+
+        <FormSection>
+          <SectionTitle>
+            <FaCalendarAlt />
+            Market Settings
+          </SectionTitle>
+          
+          <FormGroup>
+            <Label>Closing Time</Label>
+            <Input 
+              type="datetime-local" 
+              value={closesAt} 
+              onChange={e => setClosesAt(e.target.value)} 
+              required 
+            />
+            <HelpText>Market will close at this time and no more bets will be accepted</HelpText>
+          </FormGroup>
+
+          <BetLimitsRow>
+            <FormGroup>
+              <Label>Minimum Bet (ETH)</Label>
+              <Input 
+                type="number" 
+                step="0.01" 
+                min={0.01} 
+                value={minBet} 
+                onChange={e => setMinBet(Number(e.target.value))} 
+                required 
+              />
+            </FormGroup>
+            
+            <FormGroup>
+              <Label>Maximum Bet (ETH)</Label>
+              <Input 
+                type="number" 
+                step="0.01" 
+                min={0.01} 
+                value={maxBet} 
+                onChange={e => setMaxBet(Number(e.target.value))} 
+                required 
+              />
+            </FormGroup>
+          </BetLimitsRow>
+        </FormSection>
+
+        <FormSection>
+          <SectionTitle>
+            <FaCoins />
+            Pool Configuration
+          </SectionTitle>
+          
+          <FormGroup>
+            <Label>Initial Pool (ETH)</Label>
+            <Input 
+              type="number" 
+              step="0.01" 
+              min={0.1} 
+              value={initialPool} 
+              onChange={e => setInitialPool(Number(e.target.value))} 
+              required 
+            />
+            <HelpText>Starting amount in the betting pool</HelpText>
+          </FormGroup>
+        </FormSection>
+
+        {error && (
+          <ErrorContainer>
+            <ErrorIcon>
+              <FaExclamationTriangle />
+            </ErrorIcon>
+            <ErrorText>{error}</ErrorText>
+          </ErrorContainer>
+        )}
+        
+        {success && (
+          <SuccessContainer>
+            <SuccessIcon>
+              <FaCheckCircle />
+            </SuccessIcon>
+            <SuccessText>{success}</SuccessText>
+          </SuccessContainer>
+        )}
+
+        <SubmitButton type="submit" disabled={!isConnected}>
+          <FaPlus />
+          Create Market
+        </SubmitButton>
       </Form>
     </Container>
   );
 }
 
 const Container = styled.div`
-  max-width: 500px;
+  max-width: 800px;
   margin: 32px auto;
+  padding: 0 24px;
+  @media (max-width: 600px) {
+    padding: 0 16px;
+    margin: 16px auto;
+  }
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 32px;
+  padding: 32px;
   background: ${({ theme }) => theme.colors.card};
-  border-radius: ${({ theme }) => theme.borderRadius};
-  padding: 32px 24px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   @media (max-width: 600px) {
-    padding: 14px 4px;
-    margin: 12px 0;
+    flex-direction: column;
+    text-align: center;
+    padding: 24px 20px;
+    gap: 16px;
   }
 `;
-const Title = styled.h2`
+
+const HeaderIcon = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  background: ${({ theme }) => theme.colors.primary};
+  color: white;
+  border-radius: 16px;
+  font-size: 24px;
+  flex-shrink: 0;
+  @media (max-width: 600px) {
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+  }
+`;
+
+const HeaderContent = styled.div`
+  flex: 1;
+`;
+
+const Title = styled.h1`
   color: ${({ theme }) => theme.colors.primary};
-  margin-bottom: 24px;
-  font-size: 1.5rem;
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 0 8px 0;
   @media (max-width: 600px) {
-    font-size: 1.1rem;
-    margin-bottom: 10px;
+    font-size: 1.5rem;
   }
 `;
+
+const Subtitle = styled.p`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 16px;
+  margin: 0;
+  line-height: 1.5;
+  @media (max-width: 600px) {
+    font-size: 14px;
+  }
+`;
+
 const Form = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  @media (max-width: 600px) {
-    gap: 8px;
-  }
+  gap: 24px;
 `;
-const Label = styled.label`
-  color: ${({ theme }) => theme.colors.textSecondary};
-  font-size: 14px;
-  @media (max-width: 600px) {
-    font-size: 12px;
-  }
-`;
-const Input = styled.input`
-  padding: 8px 12px;
-  border-radius: 8px;
+
+const FormSection = styled.div`
+  background: ${({ theme }) => theme.colors.card};
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   border: 1px solid ${({ theme }) => theme.colors.border};
-  background: ${({ theme }) => theme.colors.background};
-  color: ${({ theme }) => theme.colors.text};
   @media (max-width: 600px) {
-    padding: 6px 8px;
-    font-size: 14px;
+    padding: 24px 20px;
   }
 `;
-const TextArea = styled.textarea`
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  background: ${({ theme }) => theme.colors.background};
-  color: ${({ theme }) => theme.colors.text};
-  min-height: 60px;
-  @media (max-width: 600px) {
-    padding: 6px 8px;
-    font-size: 14px;
-    min-height: 40px;
-  }
-`;
-const Row = styled.div`
+
+const SectionTitle = styled.h2`
+  color: ${({ theme }) => theme.colors.primary};
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 24px 0;
   display: flex;
-  gap: 16px;
+  align-items: center;
+  gap: 12px;
+  
+  svg {
+    color: ${({ theme }) => theme.colors.primary};
+    font-size: 18px;
+  }
+  
   @media (max-width: 600px) {
-    gap: 8px;
-    flex-direction: column;
+    font-size: 1.1rem;
+    margin-bottom: 20px;
   }
 `;
-const Col = styled.div`
-  flex: 1;
+
+const FormGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
 `;
-const Error = styled.div`
-  color: ${({ theme }) => theme.colors.accentRed};
+
+const Label = styled.label`
+  color: ${({ theme }) => theme.colors.text};
   font-size: 14px;
-  @media (max-width: 600px) {
-    font-size: 12px;
-  }
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 `;
-const Success = styled.div`
-  color: ${({ theme }) => theme.colors.accentGreen};
-  font-size: 14px;
-  @media (max-width: 600px) {
-    font-size: 12px;
-  }
-`;
-const Submit = styled.button`
-  background: ${({ theme }) => theme.colors.primary};
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 12px 0;
+
+const Input = styled.input`
+  padding: 16px 20px;
+  border-radius: 12px;
+  border: 2px solid ${({ theme }) => theme.colors.border};
+  background: ${({ theme }) => theme.colors.background};
+  color: ${({ theme }) => theme.colors.text};
   font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  margin-top: 8px;
-  transition: background 0.2s;
-  &:hover {
+  transition: all 0.2s;
+  
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 3px ${({ theme }) => `${theme.colors.primary}20`};
+  }
+  
+  &::placeholder {
+    color: ${({ theme }) => theme.colors.textSecondary};
+  }
+  
+  @media (max-width: 600px) {
+    padding: 14px 16px;
+    font-size: 16px;
+  }
+`;
+
+const TextArea = styled.textarea`
+  padding: 16px 20px;
+  border-radius: 12px;
+  border: 2px solid ${({ theme }) => theme.colors.border};
+  background: ${({ theme }) => theme.colors.background};
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 16px;
+  min-height: 120px;
+  resize: vertical;
+  font-family: inherit;
+  transition: all 0.2s;
+  
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 3px ${({ theme }) => `${theme.colors.primary}20`};
+  }
+  
+  &::placeholder {
+    color: ${({ theme }) => theme.colors.textSecondary};
+  }
+  
+  @media (max-width: 600px) {
+    padding: 14px 16px;
+    font-size: 16px;
+    min-height: 100px;
+  }
+`;
+
+const HelpText = styled.p`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 12px;
+  margin: 4px 0 0 0;
+  line-height: 1.4;
+`;
+
+const BetLimitsRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+`;
+
+const ErrorContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: ${({ theme }) => `${theme.colors.accentRed}10`};
+  border: 1px solid ${({ theme }) => theme.colors.accentRed};
+  border-radius: 12px;
+  color: ${({ theme }) => theme.colors.accentRed};
+`;
+
+const ErrorIcon = styled.div`
+  font-size: 18px;
+  flex-shrink: 0;
+`;
+
+const ErrorText = styled.span`
+  font-size: 14px;
+  font-weight: 500;
+`;
+
+const SuccessContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: ${({ theme }) => `${theme.colors.accentGreen}10`};
+  border: 1px solid ${({ theme }) => theme.colors.accentGreen};
+  border-radius: 12px;
+  color: ${({ theme }) => theme.colors.accentGreen};
+`;
+
+const SuccessIcon = styled.div`
+  font-size: 18px;
+  flex-shrink: 0;
+`;
+
+const SuccessText = styled.span`
+  font-size: 14px;
+  font-weight: 500;
+`;
+
+const SubmitButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: ${({ theme, disabled }) => disabled ? theme.colors.textSecondary : theme.colors.primary};
+  color: white;
+  border: none;
+  border-radius: 16px;
+  padding: 20px 32px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: ${({ disabled }) => disabled ? 'not-allowed' : 'pointer'};
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
     background: ${({ theme }) => theme.colors.accentGreen};
   }
+  
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+  
+  svg {
+    font-size: 16px;
+  }
+  
   @media (max-width: 600px) {
-    padding: 8px 0;
-    font-size: 14px;
+    padding: 16px 24px;
+    font-size: 16px;
   }
 `; 

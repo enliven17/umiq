@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import styled from "styled-components";
 import { useAccount } from 'wagmi';
+import { FaTrophy, FaClock, FaCheckCircle, FaTimesCircle, FaCoins } from 'react-icons/fa';
 
 export default function UserBetsScreen() {
   const { address } = useAccount();
@@ -15,116 +16,463 @@ export default function UserBetsScreen() {
   // Kazanılan bahisler (ödül claim edilebilir veya edildi)
   const myRewards = rewards.filter(r => r.userId === address);
 
+  const getStatusIcon = (status: string, result?: string, side?: string) => {
+    if (status === "resolved") {
+      return result === side ? <FaCheckCircle /> : <FaTimesCircle />;
+    }
+    return <FaClock />;
+  };
+
   return (
     <Container>
-      <Title>Bahis Geçmişim</Title>
-      <SectionTitle>Bahislerim</SectionTitle>
-      {myBets.length === 0 && <EmptyText>Henüz bahis yapmadınız.</EmptyText>}
-      {myBets.map(bet => (
-        <BetItem key={bet.id}>
-          <BetMarket>{bet.market.title}</BetMarket>
-          <span>{bet.side === "yes" ? "Evet" : "Hayır"}</span>
-          <span>{bet.amount} ETH</span>
-          <span>{new Date(bet.timestamp).toLocaleString()}</span>
-          <BetStatus>
-            {bet.market.status === "resolved"
-              ? bet.market.result === bet.side
-                ? <Win>Kazandı</Win>
-                : <Lose>Kaybetti</Lose>
-              : <Open>Açık</Open>}
-          </BetStatus>
-        </BetItem>
-      ))}
-      <SectionTitle>Kazançlarım</SectionTitle>
-      {myRewards.length === 0 && <EmptyText>Kazancınız yok.</EmptyText>}
-      {myRewards.map(r => (
-        <RewardItem key={r.marketId}>
-          <span>Market ID: {r.marketId}</span>
-          <span>Miktar: {r.amount.toFixed(4)} ETH</span>
-          <span>{r.claimed ? "Çekildi" : "Çekilebilir"}</span>
-        </RewardItem>
-      ))}
+      <Header>
+        <Title>My Bet History</Title>
+        <Stats>
+          <StatItem>
+            <StatLabel>Total Bets</StatLabel>
+            <StatValue>{myBets.length}</StatValue>
+          </StatItem>
+          <StatItem>
+            <StatLabel>Rewards</StatLabel>
+            <StatValue>{myRewards.length}</StatValue>
+          </StatItem>
+        </Stats>
+      </Header>
+
+      <Section>
+        <SectionHeader>
+          <SectionTitle>My Bets</SectionTitle>
+          <SectionCount>{myBets.length} bets</SectionCount>
+        </SectionHeader>
+        
+        {myBets.length === 0 ? (
+          <EmptyState>
+            <EmptyIcon>🎲</EmptyIcon>
+            <EmptyTitle>No bets yet</EmptyTitle>
+            <EmptyText>Start betting on markets to see your history here</EmptyText>
+          </EmptyState>
+        ) : (
+          <BetsGrid>
+            {myBets.map(bet => (
+              <BetCard key={bet.id}>
+                <BetHeader>
+                  <BetMarket>{bet.market.title}</BetMarket>
+                  <BetStatus>
+                    {bet.market.status === "resolved"
+                      ? bet.market.result === bet.side
+                        ? <WinIcon><FaCheckCircle /></WinIcon>
+                        : <LoseIcon><FaTimesCircle /></LoseIcon>
+                      : <OpenIcon><FaClock /></OpenIcon>}
+                  </BetStatus>
+                </BetHeader>
+                
+                <BetDetails>
+                  <BetDetail>
+                    <DetailLabel>Side</DetailLabel>
+                    <DetailValue $side={bet.side}>
+                      {bet.side === "yes" ? "Yes" : "No"}
+                    </DetailValue>
+                  </BetDetail>
+                  
+                  <BetDetail>
+                    <DetailLabel>Amount</DetailLabel>
+                    <DetailValue $amount>{bet.amount} ETH</DetailValue>
+                  </BetDetail>
+                  
+                  <BetDetail>
+                    <DetailLabel>Status</DetailLabel>
+                    <DetailValue>
+                      {bet.market.status === "resolved"
+                        ? bet.market.result === bet.side
+                          ? <Win>Won</Win>
+                          : <Lose>Lost</Lose>
+                        : <Open>Open</Open>}
+                    </DetailValue>
+                  </BetDetail>
+                </BetDetails>
+                
+                <BetFooter>
+                  <BetDate>{new Date(bet.timestamp).toLocaleDateString()}</BetDate>
+                  <BetTime>{new Date(bet.timestamp).toLocaleTimeString()}</BetTime>
+                </BetFooter>
+              </BetCard>
+            ))}
+          </BetsGrid>
+        )}
+      </Section>
+
+      <Section>
+        <SectionHeader>
+          <SectionTitle>My Rewards</SectionTitle>
+          <SectionCount>{myRewards.length} rewards</SectionCount>
+        </SectionHeader>
+        
+        {myRewards.length === 0 ? (
+          <EmptyState>
+            <EmptyIcon>🏆</EmptyIcon>
+            <EmptyTitle>No rewards yet</EmptyTitle>
+            <EmptyText>Win some bets to see your rewards here</EmptyText>
+          </EmptyState>
+        ) : (
+          <RewardsGrid>
+            {myRewards.map(r => (
+              <RewardCard key={r.marketId}>
+                <RewardHeader>
+                  <RewardIcon>
+                    <FaCoins />
+                  </RewardIcon>
+                  <RewardStatus $claimed={r.claimed}>
+                    {r.claimed ? "Claimed" : "Claimable"}
+                  </RewardStatus>
+                </RewardHeader>
+                
+                <RewardDetails>
+                  <RewardDetail>
+                    <DetailLabel>Market ID</DetailLabel>
+                    <DetailValue>{r.marketId.slice(0, 8)}...</DetailValue>
+                  </RewardDetail>
+                  
+                  <RewardDetail>
+                    <DetailLabel>Amount</DetailLabel>
+                    <DetailValue $reward>{r.amount.toFixed(4)} ETH</DetailValue>
+                  </RewardDetail>
+                </RewardDetails>
+              </RewardCard>
+            ))}
+          </RewardsGrid>
+        )}
+      </Section>
     </Container>
   );
 }
 
 const Container = styled.div`
-  max-width: 700px;
+  max-width: 1200px;
   margin: 32px auto;
-  background: ${({ theme }) => theme.colors.card};
-  border-radius: ${({ theme }) => theme.borderRadius};
-  padding: 32px 24px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  padding: 0 24px;
   @media (max-width: 600px) {
-    padding: 14px 4px;
-    margin: 12px 0;
+    padding: 0 16px;
+    margin: 16px auto;
   }
 `;
-const Title = styled.h2`
-  color: ${({ theme }) => theme.colors.primary};
-  margin-bottom: 24px;
-  font-size: 1.5rem;
-  @media (max-width: 600px) {
-    font-size: 1.1rem;
-    margin-bottom: 10px;
-  }
-`;
-const SectionTitle = styled.h3`
-  color: ${({ theme }) => theme.colors.textSecondary};
-  margin: 24px 0 8px 0;
-  font-size: 1.1rem;
-  @media (max-width: 600px) {
-    font-size: 1rem;
-    margin: 14px 0 4px 0;
-  }
-`;
-const EmptyText = styled.div`
-  color: ${({ theme }) => theme.colors.textSecondary};
-  font-size: 14px;
-  margin-bottom: 8px;
-  @media (max-width: 600px) {
-    font-size: 12px;
-  }
-`;
-const BetItem = styled.div`
+
+const Header = styled.div`
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  padding: 8px 0;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+  margin-bottom: 32px;
   @media (max-width: 600px) {
-    gap: 6px;
-    font-size: 13px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 24px;
   }
 `;
-const BetMarket = styled.span`
+
+const Title = styled.h1`
   color: ${({ theme }) => theme.colors.primary};
-  font-weight: bold;
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  @media (max-width: 600px) {
+    font-size: 1.5rem;
+  }
 `;
-const BetStatus = styled.span`
-  margin-left: auto;
-`;
-const Win = styled.span`
-  color: ${({ theme }) => theme.colors.accentGreen};
-  font-weight: bold;
-`;
-const Lose = styled.span`
-  color: ${({ theme }) => theme.colors.accentRed};
-  font-weight: bold;
-`;
-const Open = styled.span`
-  color: ${({ theme }) => theme.colors.textSecondary};
-`;
-const RewardItem = styled.div`
+
+const Stats = styled.div`
   display: flex;
   gap: 24px;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
   @media (max-width: 600px) {
-    gap: 8px;
-    font-size: 13px;
-    flex-wrap: wrap;
+    gap: 16px;
   }
+`;
+
+const StatItem = styled.div`
+  text-align: center;
+  padding: 16px 24px;
+  background: ${({ theme }) => theme.colors.card};
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  @media (max-width: 600px) {
+    padding: 12px 16px;
+  }
+`;
+
+const StatLabel = styled.div`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+`;
+
+const StatValue = styled.div`
+  color: ${({ theme }) => theme.colors.primary};
+  font-size: 24px;
+  font-weight: 700;
+  @media (max-width: 600px) {
+    font-size: 20px;
+  }
+`;
+
+const Section = styled.div`
+  margin-bottom: 40px;
+`;
+
+const SectionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  @media (max-width: 600px) {
+    margin-bottom: 16px;
+  }
+`;
+
+const SectionTitle = styled.h2`
+  color: ${({ theme }) => theme.colors.primary};
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  @media (max-width: 600px) {
+    font-size: 1.25rem;
+  }
+`;
+
+const SectionCount = styled.span`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 14px;
+  font-weight: 500;
+  background: ${({ theme }) => theme.colors.background};
+  padding: 6px 12px;
+  border-radius: 20px;
+`;
+
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 60px 20px;
+  background: ${({ theme }) => theme.colors.card};
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+`;
+
+const EmptyIcon = styled.div`
+  font-size: 48px;
+  margin-bottom: 16px;
+`;
+
+const EmptyTitle = styled.h3`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+`;
+
+const EmptyText = styled.p`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 14px;
+  margin: 0;
+`;
+
+const BetsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+`;
+
+const BetCard = styled.div`
+  background: ${({ theme }) => theme.colors.card};
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  transition: transform 0.2s, box-shadow 0.2s;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  }
+  
+  @media (max-width: 600px) {
+    padding: 20px;
+  }
+`;
+
+const BetHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+`;
+
+const BetMarket = styled.h3`
+  color: ${({ theme }) => theme.colors.primary};
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.4;
+  flex: 1;
+  margin-right: 16px;
+`;
+
+const BetStatus = styled.div`
+  flex-shrink: 0;
+`;
+
+const WinIcon = styled.div`
+  color: ${({ theme }) => theme.colors.accentGreen};
+  font-size: 20px;
+`;
+
+const LoseIcon = styled.div`
+  color: ${({ theme }) => theme.colors.accentRed};
+  font-size: 20px;
+`;
+
+const OpenIcon = styled.div`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 20px;
+`;
+
+const BetDetails = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+`;
+
+const BetDetail = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const DetailLabel = styled.span`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const DetailValue = styled.span<{ $side?: string; $amount?: boolean; $reward?: boolean }>`
+  color: ${({ theme, $side, $amount, $reward }) => {
+    if ($side === "yes") return theme.colors.accentGreen;
+    if ($side === "no") return theme.colors.accentRed;
+    if ($amount || $reward) return theme.colors.primary;
+    return theme.colors.text;
+  }};
+  font-size: 14px;
+  font-weight: 600;
+`;
+
+const BetFooter = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid ${({ theme }) => theme.colors.border};
+`;
+
+const BetDate = styled.span`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 12px;
+  font-weight: 500;
+`;
+
+const BetTime = styled.span`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 12px;
+  font-weight: 500;
+`;
+
+const RewardsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+`;
+
+const RewardCard = styled.div`
+  background: ${({ theme }) => theme.colors.card};
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  transition: transform 0.2s, box-shadow 0.2s;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  }
+  
+  @media (max-width: 600px) {
+    padding: 20px;
+  }
+`;
+
+const RewardHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+`;
+
+const RewardIcon = styled.div`
+  color: ${({ theme }) => theme.colors.primary};
+  font-size: 24px;
+`;
+
+const RewardStatus = styled.span<{ $claimed: boolean }>`
+  color: ${({ theme, $claimed }) => $claimed ? theme.colors.textSecondary : theme.colors.accentGreen};
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: ${({ theme, $claimed }) => $claimed ? theme.colors.background : `${theme.colors.accentGreen}20`};
+`;
+
+const RewardDetails = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+`;
+
+const RewardDetail = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const Win = styled.span`
+  color: ${({ theme }) => theme.colors.accentGreen};
+  font-weight: 600;
+`;
+
+const Lose = styled.span`
+  color: ${({ theme }) => theme.colors.accentRed};
+  font-weight: 600;
+`;
+
+const Open = styled.span`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-weight: 600;
 `; 
