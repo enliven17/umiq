@@ -57,8 +57,12 @@ export function BalanceManager() {
       dispatch(depositBalance({ address: address!, amount }));
       setDepositAmount('');
       setTimeout(() => setSuccess(''), 4000);
-    } catch (err: any) {
-      setError(err.message || 'Transaction failed.');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || 'Transaction failed.');
+      } else {
+        setError('Transaction failed.');
+      }
     }
   };
 

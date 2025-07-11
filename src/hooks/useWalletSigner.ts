@@ -3,8 +3,14 @@ import { ethers } from 'ethers';
 
 // TypeScript için ethereum window property'sini tanımla
 declare global {
+  interface Ethereumish {
+    selectedAddress?: string;
+    on?: (...args: any[]) => void;
+    removeListener?: (...args: any[]) => void;
+    request?: (...args: any[]) => Promise<any>;
+  }
   interface Window {
-    ethereum?: any;
+    ethereum?: Ethereumish;
   }
 }
 
@@ -27,7 +33,7 @@ export function useWalletSigner() {
     checkWalletConnection();
     
     // Cüzdan değişikliklerini dinle
-    if (window.ethereum) {
+    if (window.ethereum && window.ethereum.on) {
       window.ethereum.on('accountsChanged', checkWalletConnection);
       window.ethereum.on('connect', checkWalletConnection);
       window.ethereum.on('disconnect', () => {
@@ -37,7 +43,7 @@ export function useWalletSigner() {
     }
 
     return () => {
-      if (window.ethereum) {
+      if (window.ethereum && window.ethereum.removeListener) {
         window.ethereum.removeListener('accountsChanged', checkWalletConnection);
         window.ethereum.removeListener('connect', checkWalletConnection);
         window.ethereum.removeListener('disconnect', () => {
@@ -54,7 +60,7 @@ export function useWalletSigner() {
       throw new Error('Wallet not connected');
     }
     
-    const provider = new ethers.BrowserProvider(window.ethereum);
+    const provider = new ethers.BrowserProvider(window.ethereum as any);
     const signer = await provider.getSigner();
     return await signer.signMessage(message);
   };

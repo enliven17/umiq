@@ -104,7 +104,7 @@ export default function CreateMarketScreen() {
     try {
       // 1. Initial pool kadar ETH transfer et
       if (!window.ethereum) throw new Error('Ethereum wallet not found.');
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      const provider = new ethers.BrowserProvider(window.ethereum as any);
       const signer = await provider.getSigner();
       const tx = await signer.sendTransaction({
         to: CENTRAL_WALLET,
@@ -136,8 +136,12 @@ export default function CreateMarketScreen() {
       setMaxBet(1);
       setInitialPool(0.5);
       setReview(false);
-    } catch (err: any) {
-      setError(err.message || 'Transaction failed.');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || 'Transaction failed.');
+      } else {
+        setError('Transaction failed.');
+      }
     } finally {
       setLoading(false);
     }

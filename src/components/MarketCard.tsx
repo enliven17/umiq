@@ -8,6 +8,7 @@ import { spendBalance } from '@/store/walletSlice';
 import { addBet } from '@/store/marketsSlice';
 import { useWalletConnection } from '@/hooks/useWalletConnection';
 import { v4 as uuidv4 } from 'uuid';
+import { RootState } from '@/store';
 
 interface Props {
   market: Market;
@@ -25,7 +26,7 @@ export function MarketCard({ market }: Props) {
 
   const dispatch = useDispatch();
   const { address: connectedAddress, isConnected } = useWalletConnection();
-  const balance = useSelector((state: any) => connectedAddress ? state.wallet.balances[connectedAddress] || 0 : 0);
+  const balance = useSelector((state: RootState) => connectedAddress ? state.wallet.balances[connectedAddress] || 0 : 0);
 
   const handleBuy = (side: "yes" | "no") => {
     setModal(side);

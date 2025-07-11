@@ -3,12 +3,12 @@ import { callMoveFunctionHttp } from '@/api/umiMove';
 
 export function useUmiMove() {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
 
   const execute = async (
     functionName: string,
-    args: any[],
+    args: unknown[],
     sender: string,
     signature: string
   ) => {
@@ -17,8 +17,12 @@ export function useUmiMove() {
     try {
       const tx = await callMoveFunctionHttp(functionName, args, sender, signature);
       setResult(tx);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        setError(e.message);
+      } else {
+        setError('Unknown error');
+      }
     }
     setLoading(false);
   };
