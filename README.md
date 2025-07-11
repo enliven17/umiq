@@ -30,7 +30,7 @@ UMIq is a next-generation decentralized prediction market platform that democrat
 - Community recognition system
 
 ### 🔗 **Web3 Integration**
-- Seamless MetaMask wallet connection
+- MetaMask wallet connection
 - UMI Devnet blockchain integration
 - On-chain deposit and withdrawal operations
 - Secure transaction handling
