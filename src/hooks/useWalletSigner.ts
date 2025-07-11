@@ -14,9 +14,6 @@ declare global {
   }
 }
 
-// ethers tipi importu
-import type { Eip1193Provider } from 'ethers';
-
 export function useWalletSigner() {
   const [address, setAddress] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -63,7 +60,7 @@ export function useWalletSigner() {
       throw new Error('Wallet not connected');
     }
     
-    const provider = new ethers.BrowserProvider(window.ethereum as Eip1193Provider);
+    const provider = new ethers.BrowserProvider(window.ethereum as any);
     const signer = await provider.getSigner();
     return await signer.signMessage(message);
   };

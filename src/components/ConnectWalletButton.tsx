@@ -1,5 +1,5 @@
 "use client";
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { ethers } from 'ethers';
 import { useDispatch } from 'react-redux';
@@ -21,7 +21,7 @@ export function ConnectWalletButton() {
         // setError('No Ethereum wallet (like MetaMask) found.'); // This line was removed
         return;
       }
-      const provider = new ethers.BrowserProvider(window.ethereum as unknown);
+      const provider = new ethers.BrowserProvider(window.ethereum as any);
       const accounts = await provider.send('eth_requestAccounts', []);
       const userAddress = accounts[0];
       // DeFiQ puanını localStorage'dan kontrol et
@@ -47,7 +47,7 @@ export function ConnectWalletButton() {
       localStorage.removeItem(`defiq_${address}`);
       if (window.ethereum) {
         try {
-          await (window.ethereum as unknown as { request: Function }).request({
+          await (window.ethereum as any).request({
             method: 'wallet_requestPermissions',
             params: [{ eth_accounts: {} }]
           });
@@ -158,4 +158,11 @@ const DisconnectButton = styled.button`
   &:hover {
     background: #c0392b;
   }
+`;
+
+const ErrorBox = styled.div`
+  color: ${({ theme }) => theme.colors.accentRed};
+  font-size: 0.95rem;
+  margin-top: 8px;
+  text-align: center;
 `;
