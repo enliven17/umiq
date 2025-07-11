@@ -4,7 +4,7 @@ import { RootState } from "@/store";
 import { MarketCard } from "@/components/MarketCard";
 import styled from "styled-components";
 import { useState } from "react";
-import { FaFire, FaFilter, FaChartLine, FaClock, FaCheckCircle } from 'react-icons/fa';
+import { FaFire, FaFilter, FaChartLine, FaClock, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 
 export default function HomePage() {
   const [filter, setFilter] = useState<"open" | "closed" | "all">("open");

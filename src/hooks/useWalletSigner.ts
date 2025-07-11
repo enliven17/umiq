@@ -5,9 +5,9 @@ import { ethers } from 'ethers';
 declare global {
   interface Ethereumish {
     selectedAddress?: string;
-    on?: (...args: unknown[]) => void;
-    removeListener?: (...args: unknown[]) => void;
-    request?: (...args: unknown[]) => Promise<unknown>;
+    on?: (...args: any[]) => void;
+    removeListener?: (...args: any[]) => void;
+    request?: (...args: any[]) => Promise<any>;
   }
   interface Window {
     ethereum?: Ethereumish;

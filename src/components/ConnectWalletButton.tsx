@@ -12,16 +12,18 @@ function shortenAddress(address: string) {
 }
 
 export function ConnectWalletButton() {
-  const { address } = useWalletConnection();
+  const [error, setError] = useState<string | null>(null);
   const dispatch = useDispatch();
+  const { address, isConnected } = useWalletConnection();
 
   const connectWallet = async () => {
+    setError(null);
     try {
       if (!window.ethereum) {
-        // setError('No Ethereum wallet (like MetaMask) found.'); // This line was removed
+        setError('No Ethereum wallet (like MetaMask) found.');
         return;
       }
-      const provider = new ethers.BrowserProvider(window.ethereum as any);
+      const provider = new ethers.BrowserProvider(window.ethereum);
       const accounts = await provider.send('eth_requestAccounts', []);
       const userAddress = accounts[0];
       // DeFiQ puanını localStorage'dan kontrol et
@@ -37,7 +39,7 @@ export function ConnectWalletButton() {
       dispatch(setUserDefiQ({ address: userAddress, score: defiQScore }));
     } catch (error: unknown) {
       console.error('Wallet connection error:', error);
-      // setError('Connection rejected or an error occurred.'); // This line was removed
+      setError('Connection rejected or an error occurred.');
     }
   };
 
@@ -47,11 +49,11 @@ export function ConnectWalletButton() {
       localStorage.removeItem(`defiq_${address}`);
       if (window.ethereum) {
         try {
-          await (window.ethereum as any).request({
+          await window.ethereum.request({
             method: 'wallet_requestPermissions',
             params: [{ eth_accounts: {} }]
           });
-          // setError(null); // This line was removed
+          setError(null);
           setTimeout(() => {
             window.location.reload();
           }, 500);
@@ -61,10 +63,10 @@ export function ConnectWalletButton() {
           }, 500);
         }
       } else {
-        // setError(null); // This line was removed
+        setError(null);
       }
     }
-    // setError(null); // This line was removed
+    setError(null);
   };
 
   return (
@@ -81,7 +83,7 @@ export function ConnectWalletButton() {
           </CustomButton>
         )}
       </ModernConnectButtonWrapper>
-      {/* {error && <ErrorBox>{error}</ErrorBox>} */}
+      {error && <ErrorBox>{error}</ErrorBox>}
     </>
   );
 }

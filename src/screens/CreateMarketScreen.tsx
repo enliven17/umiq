@@ -1,11 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styled from "styled-components";
 import { useDispatch } from "react-redux";
 import { addMarket } from "@/store/marketsSlice";
 import { Market } from "@/types/market";
 import { v4 as uuidv4 } from "uuid";
-import { FaPlus, FaCalendarAlt, FaCoins, FaInfoCircle, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
+import { FaPlus, FaCalendarAlt, FaCoins, FaInfoCircle, FaCheckCircle, FaExclamationTriangle, FaTimesCircle } from 'react-icons/fa';
 import { useWalletConnection } from '@/hooks/useWalletConnection';
 import { ethers } from "ethers";
 import Confetti from "react-confetti";
@@ -30,6 +30,38 @@ export default function CreateMarketScreen() {
   const [windowWidth, windowHeight] = useWindowSize();
 
   // useEffect ile cüzdan bağlantı kontrolü ve local state kaldırıldı
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    if (!title.trim() || !description.trim()) {
+      setError("Title and description are required.");
+      return;
+    }
+    if (!closesAt) {
+      setError("Closing time must be selected.");
+      return;
+    }
+    if (minBet <= 0 || maxBet <= 0 || minBet >= maxBet) {
+      setError("Min/max bet limits are invalid.");
+      return;
+    }
+    if (initialPool < 0.1) {
+      setError("Initial pool must be at least 0.1 ETH.");
+      return;
+    }
+    if (!isConnected || !connectedAddress) {
+      setError("Wallet is not connected.");
+      return;
+    }
+    const closesAtTimestamp = new Date(closesAt).getTime();
+    if (closesAtTimestamp < Date.now() + 60 * 60 * 1000) {
+      setError("Closing time must be at least 1 hour from now.");
+      return;
+    }
+    setReview(true);
+  };
 
   // Review butonu
   const handleReview = (e: React.FormEvent) => {
@@ -533,6 +565,16 @@ const SuccessContainer = styled.div`
   border: 1px solid ${({ theme }) => theme.colors.accentGreen};
   border-radius: 12px;
   color: ${({ theme }) => theme.colors.accentGreen};
+`;
+
+const SuccessIcon = styled.div`
+  font-size: 18px;
+  flex-shrink: 0;
+`;
+
+const SuccessText = styled.span`
+  font-size: 14px;
+  font-weight: 500;
 `;
 
 const SubmitButton = styled.button`
