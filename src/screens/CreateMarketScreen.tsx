@@ -1,11 +1,11 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import styled from "styled-components";
 import { useDispatch } from "react-redux";
 import { addMarket } from "@/store/marketsSlice";
 import { Market } from "@/types/market";
 import { v4 as uuidv4 } from "uuid";
-import { FaPlus, FaCalendarAlt, FaCoins, FaInfoCircle, FaCheckCircle, FaExclamationTriangle, FaTimesCircle } from 'react-icons/fa';
+import { FaPlus, FaCalendarAlt, FaCoins, FaInfoCircle, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
 import { useWalletConnection } from '@/hooks/useWalletConnection';
 import { ethers } from "ethers";
 import Confetti from "react-confetti";
@@ -136,8 +136,8 @@ export default function CreateMarketScreen() {
       setMaxBet(1);
       setInitialPool(0.5);
       setReview(false);
-    } catch (err: any) {
-      setError(err.message || 'Transaction failed.');
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Transaction failed.');
     } finally {
       setLoading(false);
     }
@@ -561,16 +561,6 @@ const SuccessContainer = styled.div`
   border: 1px solid ${({ theme }) => theme.colors.accentGreen};
   border-radius: 12px;
   color: ${({ theme }) => theme.colors.accentGreen};
-`;
-
-const SuccessIcon = styled.div`
-  font-size: 18px;
-  flex-shrink: 0;
-`;
-
-const SuccessText = styled.span`
-  font-size: 14px;
-  font-weight: 500;
 `;
 
 const SubmitButton = styled.button`

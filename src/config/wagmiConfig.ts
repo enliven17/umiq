@@ -1,4 +1,3 @@
-import { defaultWagmiConfig } from '@web3modal/wagmi/react/config';
 import { umiDevnet } from './umiChain';
 
 export const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'dummydummydummydummydummydummydummydummy';
