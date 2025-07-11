@@ -6,7 +6,6 @@ import { useDispatch } from 'react-redux';
 import { setUserDefiQ } from '@/store/marketsSlice';
 import { connectWallet as connectWalletAction } from '@/store/walletSlice';
 import { useWalletConnection } from '@/hooks/useWalletConnection';
-import type { Eip1193Provider } from 'ethers';
 
 function shortenAddress(address: string) {
   return address.slice(0, 6) + '...' + address.slice(-4);
@@ -22,7 +21,7 @@ export function ConnectWalletButton() {
         // setError('No Ethereum wallet (like MetaMask) found.'); // This line was removed
         return;
       }
-      const provider = new ethers.BrowserProvider(window.ethereum as Eip1193Provider);
+      const provider = new ethers.BrowserProvider(window.ethereum as unknown);
       const accounts = await provider.send('eth_requestAccounts', []);
       const userAddress = accounts[0];
       // DeFiQ puanını localStorage'dan kontrol et
@@ -36,8 +35,9 @@ export function ConnectWalletButton() {
       }
       dispatch(connectWalletAction(userAddress));
       dispatch(setUserDefiQ({ address: userAddress, score: defiQScore }));
-    } catch {
-      // Hata loglama kaldırıldı, linter için catch bloğu boş bırakıldı
+    } catch (error: unknown) {
+      console.error('Wallet connection error:', error);
+      // setError('Connection rejected or an error occurred.'); // This line was removed
     }
   };
 
@@ -99,7 +99,7 @@ const CustomButton = styled.button`
   font-weight: 600;
   border-radius: 10px;
   padding: 8px 18px;
-  background: ${({ theme }) => theme.colors.primary ?? '#0070f3'};
+  background: ${({ theme }) => theme.colors.primary};
   color: #fff;
   border: none;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
