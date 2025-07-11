@@ -162,9 +162,7 @@ export default function MarketDetailScreen() {
   function PieChart({ yes, no }: { yes: number; no: number }) {
     const total = yes + no;
     const yesPct = total > 0 ? (yes / total) * 100 : 50;
-    const noPct = 100 - yesPct;
     const yesAngle = (yesPct / 100) * 360;
-    const noAngle = 360 - yesAngle;
     // Yes arc: start at -90, end at -90+yesAngle
     const yesArc = yesPct > 0 ? describeArc(70, 70, 50, -90, -90 + yesAngle) : '';
     // No arc: start at -90+yesAngle, end at 270
