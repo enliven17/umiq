@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { Market, Bet, MarketStatus, BetSide } from "@/types/market";
-import { AppDispatch, RootState } from './index';
+import { Market, Bet, BetSide } from "@/types/market";
+import { RootState } from './index';
 import { depositBalance } from './walletSlice';
 import { createAsyncThunk } from '@reduxjs/toolkit';
 
@@ -159,7 +159,7 @@ function loadMarketsFromStorage() {
   try {
     const stored = localStorage.getItem('umiq_markets');
     return stored ? JSON.parse(stored) : null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -169,7 +169,7 @@ function saveMarketsToStorage(markets: Market[]) {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem('umiq_markets', JSON.stringify(markets));
-  } catch (e) {}
+  } catch {}
 }
 
 // Uygulama başlatılırken localStorage temizle (tam reload veya yeni tab)

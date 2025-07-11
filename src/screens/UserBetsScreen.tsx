@@ -2,8 +2,7 @@
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import styled from "styled-components";
-import { useState, useEffect } from 'react';
-import { FaTrophy, FaClock, FaCheckCircle, FaTimesCircle, FaCoins, FaBrain } from 'react-icons/fa';
+import { FaClock, FaCheckCircle, FaTimesCircle, FaCoins, FaBrain } from 'react-icons/fa';
 import { useWalletConnection } from '@/hooks/useWalletConnection';
 import { BalanceManager } from '@/components/BalanceManager';
 
@@ -29,13 +28,6 @@ export default function UserBetsScreen() {
 
   // Kazanılan bahisler (ödül claim edilebilir veya edildi)
   const myRewards = connectedAddress ? rewards.filter(r => r.userId === connectedAddress) : [];
-
-  const getStatusIcon = (status: string, result?: string, side?: string) => {
-    if (status === "resolved") {
-      return result === side ? <FaCheckCircle /> : <FaTimesCircle />;
-    }
-    return <FaClock />;
-  };
 
   return (
     <Container>

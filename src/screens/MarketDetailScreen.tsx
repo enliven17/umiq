@@ -1,10 +1,10 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import type { AppDispatch } from '@/store';
 import { RootState } from "@/store";
-import { addBet, closeMarket, claimReward } from "@/store/marketsSlice";
+import { addBet, claimReward } from "@/store/marketsSlice";
 import { closeMarketAndDistributeRewards } from "@/store/marketsSlice";
 import { spendBalance } from "@/store/walletSlice";
 import { Market, BetSide } from "@/types/market";
@@ -96,7 +96,6 @@ export default function MarketDetailScreen() {
   const totalNo = market.bets.filter(b => b.side === "no").reduce((sum, b) => sum + b.amount, 0);
   const totalPool = market.initialPool + market.bets.reduce((sum, b) => sum + b.amount, 0);
   const totalBets = market.bets.length;
-  const timeLeft = market.closesAt - Date.now();
 
   // Yeni: Devam/Review butonu
   const handleReview = (e: React.FormEvent) => {
@@ -139,36 +138,9 @@ export default function MarketDetailScreen() {
     setReview(false);
   };
 
-  const handleCloseMarket = (result: BetSide) => {
-    if (!market.id) return;
-    dispatch(closeMarketAndDistributeRewards({ marketId: String(market.id), result }));
-  };
-
   const handleClaim = () => {
     if (!connectedAddress) return;
     dispatch(claimReward({ userId: connectedAddress, marketId: market.id }));
-  };
-
-  const getStatusBadge = () => {
-    if (market.status === "resolved") {
-      return (
-        <StatusBadge $color={market.result === "yes" ? "green" : "red"}>
-          {market.result === "yes" ? <FaCheckCircle /> : <FaTimesCircle />} {market.result === "yes" ? "Yes Won" : "No Won"}
-        </StatusBadge>
-      );
-    }
-    if (market.status === "open") {
-      return (
-        <StatusBadge $color="blue">
-          <FaClock /> Open
-        </StatusBadge>
-      );
-    }
-    return (
-      <StatusBadge $color="gray">
-        <FaClock /> Closed
-      </StatusBadge>
-    );
   };
 
   const handleCommentSubmit = (e: React.FormEvent) => {
@@ -318,7 +290,27 @@ export default function MarketDetailScreen() {
           <MarketTitle>{market.title}</MarketTitle>
           <MarketDesc>{market.description}</MarketDesc>
           <StatusBadgeLarge $color={market.status === "resolved" ? (market.result === "yes" ? "green" : "red") : market.status === "open" ? "blue" : "gray"}>
-            {getStatusBadge()}
+            {(() => {
+              if (market.status === "resolved") {
+                return (
+                  <StatusBadge $color={market.result === "yes" ? "green" : "red"}>
+                    {market.result === "yes" ? <FaCheckCircle /> : <FaTimesCircle />} {market.result === "yes" ? "Yes Won" : "No Won"}
+                  </StatusBadge>
+                );
+              }
+              if (market.status === "open") {
+                return (
+                  <StatusBadge $color="blue">
+                    <FaClock /> Open
+                  </StatusBadge>
+                );
+              }
+              return (
+                <StatusBadge $color="gray">
+                  <FaClock /> Closed
+                </StatusBadge>
+              );
+            })()}
           </StatusBadgeLarge>
         </GradientHeader>
         <UnifiedGrid>
@@ -446,8 +438,8 @@ export default function MarketDetailScreen() {
               {market.status === "open" && (
                 <OracleBox>
                   <OracleLabel>Set Market Result (Demo Oracle)</OracleLabel>
-                  <OracleButton onClick={() => handleCloseMarket("yes")}>Yes</OracleButton>
-                  <OracleButton onClick={() => handleCloseMarket("no")}>No</OracleButton>
+                  <OracleButton onClick={() => dispatch(closeMarketAndDistributeRewards({ marketId: String(market.id), result: "yes" }))}>Yes</OracleButton>
+                  <OracleButton onClick={() => dispatch(closeMarketAndDistributeRewards({ marketId: String(market.id), result: "no" }))}>No</OracleButton>
                 </OracleBox>
               )}
             </ShadowBox>
