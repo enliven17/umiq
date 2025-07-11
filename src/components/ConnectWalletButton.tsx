@@ -55,7 +55,7 @@ export function ConnectWalletButton() {
           setTimeout(() => {
             window.location.reload();
           }, 500);
-        } catch {
+        } catch (error) {
           setTimeout(() => {
             window.location.reload();
           }, 500);
