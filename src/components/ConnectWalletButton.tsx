@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { ethers } from 'ethers';
 import { useDispatch } from 'react-redux';
 import { setUserDefiQ } from '@/store/marketsSlice';
+import { connectWallet as connectWalletAction } from '@/store/walletSlice';
 import { useWalletConnection } from '@/hooks/useWalletConnection';
 
 function shortenAddress(address: string) {
@@ -13,74 +14,55 @@ function shortenAddress(address: string) {
 export function ConnectWalletButton() {
   const [error, setError] = useState<string | null>(null);
   const dispatch = useDispatch();
-  const { address, loading, setLoading } = useWalletConnection();
+  const { address, isConnected } = useWalletConnection();
 
   const connectWallet = async () => {
     setError(null);
-    setLoading(true);
     try {
       if (!window.ethereum) {
         setError('No Ethereum wallet (like MetaMask) found.');
-        setLoading(false);
         return;
       }
       const provider = new ethers.BrowserProvider(window.ethereum);
       const accounts = await provider.send('eth_requestAccounts', []);
       const userAddress = accounts[0];
-      
-      // Önce localStorage'dan mevcut DeFiQ puanını kontrol et
+      // DeFiQ puanını localStorage'dan kontrol et
       const existingDefiQ = localStorage.getItem(`defiq_${userAddress}`);
       let defiQScore: number;
-      
       if (existingDefiQ) {
-        // Mevcut puan varsa onu kullan
         defiQScore = Number(existingDefiQ);
       } else {
-        // Yoksa yeni rastgele puan oluştur (50-200 arası)
         defiQScore = Math.floor(Math.random() * 151) + 50;
         localStorage.setItem(`defiq_${userAddress}`, String(defiQScore));
       }
-      
-      // Redux store'a kaydet
+      dispatch(connectWalletAction(userAddress));
       dispatch(setUserDefiQ({ address: userAddress, score: defiQScore }));
-      
     } catch (error: unknown) {
       console.error('Wallet connection error:', error);
       setError('Connection rejected or an error occurred.');
     }
-    setLoading(false);
   };
 
   const disconnectWallet = async () => {
     if (address) {
       dispatch(setUserDefiQ({ address, score: 0 }));
       localStorage.removeItem(`defiq_${address}`);
-      
-      // MetaMask'tan bağlantıyı kes
       if (window.ethereum) {
         try {
-          // MetaMask'ın disconnect metodunu çağır
           await window.ethereum.request({
             method: 'wallet_requestPermissions',
             params: [{ eth_accounts: {} }]
           });
-          
-          // Başarılı disconnect sonrası state'i temizle
           setError(null);
-          
-          // Kısa bir gecikme sonrası sayfayı yenile (daha smooth deneyim için)
           setTimeout(() => {
             window.location.reload();
           }, 500);
         } catch (error) {
-          console.log('Wallet disconnect error:', error);
-          // Hata durumunda da sayfayı yenile
           setTimeout(() => {
             window.location.reload();
           }, 500);
         }
       } else {
-        // Ethereum provider yoksa sadece state'i temizle
         setError(null);
       }
     }
@@ -96,8 +78,8 @@ export function ConnectWalletButton() {
             <DisconnectButton onClick={disconnectWallet} title="Disconnect from app (to fully disconnect, use your wallet UI)">Disconnect</DisconnectButton>
           </ConnectedBox>
         ) : (
-          <CustomButton onClick={connectWallet} disabled={loading}>
-            {loading ? 'Connecting...' : 'Connect Wallet'}
+          <CustomButton onClick={connectWallet}>
+            Connect Wallet
           </CustomButton>
         )}
       </ModernConnectButtonWrapper>

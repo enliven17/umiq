@@ -4,10 +4,12 @@ import { useParams } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
 import { addBet, closeMarket, claimReward } from "@/store/marketsSlice";
+import { spendBalance } from "@/store/walletSlice";
 import { Market, BetSide } from "@/types/market";
 import styled from "styled-components";
 import { v4 as uuidv4 } from "uuid";
 import { FaCoins, FaCalendarAlt, FaCheckCircle, FaTimesCircle, FaClock, FaTrophy, FaUser, FaUserCircle } from 'react-icons/fa';
+import { useWalletConnection } from '@/hooks/useWalletConnection';
 
 const PieChartWrapper = styled.div`
   display: flex;
@@ -65,47 +67,16 @@ export default function MarketDetailScreen() {
   const [side, setSide] = useState<BetSide>("yes");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [connectedAddress, setConnectedAddress] = useState<string | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
+  const { address: connectedAddress, isConnected } = useWalletConnection();
   
-  // Cüzdan bağlantı durumunu takip et
-  useEffect(() => {
-    const checkWalletConnection = () => {
-      if (window.ethereum && window.ethereum.selectedAddress) {
-        setConnectedAddress(window.ethereum.selectedAddress);
-        setIsConnected(true);
-      } else {
-        setConnectedAddress(null);
-        setIsConnected(false);
-      }
-    };
-
-    checkWalletConnection();
-    
-    // Cüzdan değişikliklerini dinle
-    if (window.ethereum) {
-      window.ethereum.on('accountsChanged', checkWalletConnection);
-      window.ethereum.on('connect', checkWalletConnection);
-      window.ethereum.on('disconnect', () => {
-        setConnectedAddress(null);
-        setIsConnected(false);
-      });
-    }
-
-    return () => {
-      if (window.ethereum) {
-        window.ethereum.removeListener('accountsChanged', checkWalletConnection);
-        window.ethereum.removeListener('connect', checkWalletConnection);
-        window.ethereum.removeListener('disconnect', () => {
-          setConnectedAddress(null);
-          setIsConnected(false);
-        });
-      }
-    };
-  }, []);
+  // useEffect ile cüzdan bağlantı kontrolü ve local state kaldırıldı
 
   const rewards = useSelector((state: RootState) => state.markets.claimableRewards);
   const myReward = rewards.find(r => r.userId === connectedAddress && r.marketId === market?.id);
+  const balance = useSelector((state: RootState) => {
+    if (!connectedAddress) return 0;
+    return state.wallet.balances[connectedAddress] || 0;
+  });
   const [comments, setComments] = useState([
     { id: 1, user: "Alice", text: "I think this market is very interesting!", date: "2024-07-06 20:00" },
     { id: 2, user: "Bob", text: "My bet is on YES 🚀", date: "2024-07-06 20:10" },
@@ -137,6 +108,14 @@ export default function MarketDetailScreen() {
       setError("Wallet is not connected.");
       return;
     }
+    if (betAmount > balance) {
+      setError(`Insufficient balance. You have ${balance.toFixed(4)} ETH, but trying to bet ${betAmount} ETH.`);
+      return;
+    }
+    
+    // Deduct bet amount from balance
+    dispatch(spendBalance({ address: connectedAddress, amount: betAmount }));
+    
     dispatch(addBet({
       id: uuidv4(),
       userId: connectedAddress,

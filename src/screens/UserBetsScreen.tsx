@@ -4,43 +4,24 @@ import { RootState } from "@/store";
 import styled from "styled-components";
 import { useState, useEffect } from 'react';
 import { FaTrophy, FaClock, FaCheckCircle, FaTimesCircle, FaCoins, FaBrain } from 'react-icons/fa';
+import { useWalletConnection } from '@/hooks/useWalletConnection';
+import { BalanceManager } from '@/components/BalanceManager';
 
 export default function UserBetsScreen() {
-  const [connectedAddress, setConnectedAddress] = useState<string | null>(null);
+  const { address: connectedAddress } = useWalletConnection();
   
-  // Cüzdan bağlantı durumunu takip et
-  useEffect(() => {
-    const checkWalletConnection = () => {
-      if (window.ethereum && window.ethereum.selectedAddress) {
-        setConnectedAddress(window.ethereum.selectedAddress);
-      } else {
-        setConnectedAddress(null);
-      }
-    };
-
-    checkWalletConnection();
-    
-    // Cüzdan değişikliklerini dinle
-    if (window.ethereum) {
-      window.ethereum.on('accountsChanged', checkWalletConnection);
-      window.ethereum.on('connect', checkWalletConnection);
-      window.ethereum.on('disconnect', () => setConnectedAddress(null));
-    }
-
-    return () => {
-      if (window.ethereum) {
-        window.ethereum.removeListener('accountsChanged', checkWalletConnection);
-        window.ethereum.removeListener('connect', checkWalletConnection);
-        window.ethereum.removeListener('disconnect', () => setConnectedAddress(null));
-      }
-    };
-  }, []);
+  // useEffect ile cüzdan bağlantı kontrolü ve local state kaldırıldı
 
   const markets = useSelector((state: RootState) => state.markets.markets);
   const rewards = useSelector((state: RootState) => state.markets.claimableRewards);
   const defiQ = useSelector((state: RootState) => {
     if (!connectedAddress) return 0;
     return state.markets.userDefiQ[connectedAddress] || 0;
+  });
+
+  const balance = useSelector((state: RootState) => {
+    if (!connectedAddress) return 0;
+    return state.wallet.balances[connectedAddress] || 0;
   });
 
   // Kullanıcının tüm bahisleri
@@ -73,7 +54,14 @@ export default function UserBetsScreen() {
             <StatLabel><FaBrain style={{marginRight: 6, color: '#7f5af0'}}/>DEFiq</StatLabel>
             <StatValue>{defiQ}</StatValue>
           </StatItem>
+          <StatItem title="System Balance">
+            <StatLabel><FaCoins style={{marginRight: 6, color: '#00d4ff'}}/>Balance</StatLabel>
+            <StatValue>{balance.toFixed(4)} ETH</StatValue>
+          </StatItem>
         </Stats>
+        <BalanceActions>
+          <BalanceManager />
+        </BalanceActions>
       </Header>
 
       <Section>
@@ -250,6 +238,15 @@ const StatValue = styled.div`
   font-weight: 700;
   @media (max-width: 600px) {
     font-size: 20px;
+  }
+`;
+
+const BalanceActions = styled.div`
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
+  @media (max-width: 600px) {
+    justify-content: center;
   }
 `;
 

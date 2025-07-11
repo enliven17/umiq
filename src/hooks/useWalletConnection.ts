@@ -1,52 +1,36 @@
-import { useState, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
-import { setUserDefiQ } from '@/store/marketsSlice';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { connectWallet, disconnectWallet } from '@/store/walletSlice';
+import type { RootState } from '@/store';
 
 export function useWalletConnection() {
-  const [address, setAddress] = useState<string | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
+  const address = useSelector((state: RootState) => state.wallet.address);
+  const isConnected = useSelector((state: RootState) => state.wallet.isConnected);
 
-  // Wallet connection state'ini takip et
   useEffect(() => {
     const checkWalletConnection = () => {
       if (window.ethereum && window.ethereum.selectedAddress) {
         const currentAddress = window.ethereum.selectedAddress;
-        setAddress(currentAddress);
-        setIsConnected(true);
-        
-        // DeFiQ puanını yükle
-        const existingDefiQ = localStorage.getItem(`defiq_${currentAddress}`);
-        if (existingDefiQ) {
-          dispatch(setUserDefiQ({ address: currentAddress, score: Number(existingDefiQ) }));
-        }
+        dispatch(connectWallet(currentAddress));
       } else {
-        setAddress(null);
-        setIsConnected(false);
+        dispatch(disconnectWallet());
       }
     };
 
     checkWalletConnection();
-    
-    // Wallet değişikliklerini dinle
+
     if (window.ethereum) {
       window.ethereum.on('accountsChanged', checkWalletConnection);
       window.ethereum.on('connect', checkWalletConnection);
-      window.ethereum.on('disconnect', () => {
-        setAddress(null);
-        setIsConnected(false);
-      });
+      window.ethereum.on('disconnect', () => dispatch(disconnectWallet()));
     }
 
     return () => {
       if (window.ethereum) {
         window.ethereum.removeListener('accountsChanged', checkWalletConnection);
         window.ethereum.removeListener('connect', checkWalletConnection);
-        window.ethereum.removeListener('disconnect', () => {
-          setAddress(null);
-          setIsConnected(false);
-        });
+        window.ethereum.removeListener('disconnect', () => dispatch(disconnectWallet()));
       }
     };
   }, [dispatch]);
@@ -54,7 +38,5 @@ export function useWalletConnection() {
   return {
     address,
     isConnected,
-    loading,
-    setLoading
   };
 } 

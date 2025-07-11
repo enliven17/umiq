@@ -3,6 +3,11 @@ import { Market } from "@/types/market";
 import Link from "next/link";
 import { useState } from "react";
 import { FaClock, FaCheckCircle, FaTimesCircle, FaCoins, FaUsers, FaCalendarAlt } from 'react-icons/fa';
+import { useDispatch, useSelector } from 'react-redux';
+import { spendBalance } from '@/store/walletSlice';
+import { addBet } from '@/store/marketsSlice';
+import { useWalletConnection } from '@/hooks/useWalletConnection';
+import { v4 as uuidv4 } from 'uuid';
 
 interface Props {
   market: Market;
@@ -16,6 +21,10 @@ export function MarketCard({ market }: Props) {
   const [modal, setModal] = useState<null | "yes" | "no">(null);
   const [amount, setAmount] = useState(MIN_BET);
   const [error, setError] = useState("");
+
+  const dispatch = useDispatch();
+  const { address: connectedAddress, isConnected } = useWalletConnection();
+  const balance = useSelector((state: any) => connectedAddress ? state.wallet.balances[connectedAddress] || 0 : 0);
 
   const handleBuy = (side: "yes" | "no") => setModal(side);
   const closeModal = () => setModal(null);
@@ -48,6 +57,37 @@ export function MarketCard({ market }: Props) {
     }
     setAmount(val);
     setError("");
+  };
+
+  const handleConfirmBet = () => {
+    setError("");
+    if (!isConnected || !connectedAddress) {
+      setError("Wallet is not connected.");
+      return;
+    }
+    if (modal !== "yes" && modal !== "no") {
+      setError("Invalid bet side.");
+      return;
+    }
+    if (isNaN(amount) || amount < MIN_BET || amount > market.maxBet) {
+      setError(`Bet amount must be between ${MIN_BET} - ${market.maxBet} ETH.`);
+      return;
+    }
+    if (amount > balance) {
+      setError(`Insufficient balance. You have ${balance.toFixed(4)} ETH, but trying to bet ${amount} ETH.`);
+      return;
+    }
+    dispatch(spendBalance({ address: connectedAddress, amount }));
+    dispatch(addBet({
+      id: uuidv4(),
+      userId: connectedAddress,
+      marketId: market.id,
+      amount,
+      side: modal, // modal is guaranteed to be 'yes' or 'no' here
+      timestamp: Date.now()
+    }));
+    setError("");
+    setModal(null);
   };
 
   const getStatusIcon = () => {
@@ -149,27 +189,27 @@ export function MarketCard({ market }: Props) {
               <AmountInput
                 type="number"
                 min={MIN_BET}
-                max={MAX_BET}
+                max={market.maxBet}
                 step={0.001}
                 value={amount}
                 onChange={e => handleAmountChange(Number(e.target.value))}
                 placeholder="Amount (ETH)"
               />
               <AmountButton onClick={() => handleAmountChange(MIN_BET)}>Min</AmountButton>
-              <AmountButton onClick={() => handleAmountChange(MAX_BET)}>Max</AmountButton>
+              <AmountButton onClick={() => handleAmountChange(market.maxBet)}>Max</AmountButton>
             </AmountRow>
             <SliderRow>
               <Slider
                 type="range"
                 min={MIN_BET}
-                max={MAX_BET}
+                max={market.maxBet}
                 step={0.001}
                 value={amount}
                 onChange={e => handleAmountChange(Number(e.target.value))}
               />
             </SliderRow>
             {error && <div style={{color: '#ff4d4f', marginBottom: 8}}>{error}</div>}
-            <ConfirmButton $side={modal} disabled={!!error}>
+            <ConfirmButton $side={modal} disabled={!!error} onClick={handleConfirmBet}>
               Buy {modal === "yes" ? "Yes" : "No"}
               <ToWin>
                 To win {getToWin()}

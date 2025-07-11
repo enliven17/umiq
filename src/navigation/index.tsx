@@ -3,7 +3,8 @@ import Link from "next/link";
 import styled from "styled-components";
 import { usePathname } from "next/navigation";
 import { ConnectWalletButton } from "@/components/ConnectWalletButton";
-import { FaSearch, FaBrain } from 'react-icons/fa';
+import { BalanceManager } from "@/components/BalanceManager";
+import { FaSearch, FaBrain, FaCoins } from 'react-icons/fa';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { useWalletConnection } from '@/hooks/useWalletConnection';
@@ -22,6 +23,11 @@ export function MainNav() {
       if (localScore) return Number(localScore);
     }
     return 0;
+  });
+
+  const balance = useSelector((state: RootState) => {
+    if (!connectedAddress) return 0;
+    return state.wallet.balances[connectedAddress] || 0;
   });
 
   return (
@@ -46,6 +52,11 @@ export function MainNav() {
           <FaBrain style={{marginRight: 6, color: '#7f5af0', fontSize: 18}} />
           <DefiQValue>{defiQ}</DefiQValue>
         </DefiQBox>
+        <BalanceBox title="System Balance">
+          <FaCoins style={{marginRight: 6, color: '#00d4ff', fontSize: 18}} />
+          <BalanceValue>{balance.toFixed(4)} ETH</BalanceValue>
+        </BalanceBox>
+        <BalanceManager />
         <WalletBox>
           <ConnectWalletButton />
         </WalletBox>
@@ -256,6 +267,43 @@ const DefiQBox = styled.div`
 `;
 
 const DefiQValue = styled.span`
+  font-weight: 700;
+  color: ${({ theme }) => theme.colors.primary};
+  font-size: 1.08em;
+  text-shadow: 0 1px 2px rgba(127,90,240,0.3);
+  min-width: 30px;
+  text-align: center;
+`;
+
+const BalanceBox = styled.div`
+  display: flex;
+  align-items: center;
+  background: ${({ theme }) => theme.colors.card};
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(127,90,240,0.10);
+  padding: 6px 14px;
+  margin: 0 10px 0 0;
+  font-size: 1.08rem;
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.primary};
+  min-width: 60px;
+  height: 38px;
+  border: 1px solid ${({ theme }) => theme.colors.primary}33;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 16px rgba(127,90,240,0.20);
+    transform: translateY(-1px);
+  }
+  
+  @media (max-width: 800px) {
+    padding: 4px 8px;
+    font-size: 0.98rem;
+    height: 32px;
+  }
+`;
+
+const BalanceValue = styled.span`
   font-weight: 700;
   color: ${({ theme }) => theme.colors.primary};
   font-size: 1.08em;
