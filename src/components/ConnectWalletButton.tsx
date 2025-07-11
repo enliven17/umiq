@@ -47,7 +47,7 @@ export function ConnectWalletButton() {
       localStorage.removeItem(`defiq_${address}`);
       if (window.ethereum) {
         try {
-          await (window.ethereum as unknown as { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> }).request({
+          await (window.ethereum as unknown as { request: Function }).request({
             method: 'wallet_requestPermissions',
             params: [{ eth_accounts: {} }]
           });
