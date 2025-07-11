@@ -21,13 +21,21 @@ export function MarketCard({ market }: Props) {
   const [modal, setModal] = useState<null | "yes" | "no">(null);
   const [amount, setAmount] = useState(MIN_BET);
   const [error, setError] = useState("");
+  const [review, setReview] = useState(false); // Yeni: review ekranı için state
 
   const dispatch = useDispatch();
   const { address: connectedAddress, isConnected } = useWalletConnection();
   const balance = useSelector((state: any) => connectedAddress ? state.wallet.balances[connectedAddress] || 0 : 0);
 
-  const handleBuy = (side: "yes" | "no") => setModal(side);
-  const closeModal = () => setModal(null);
+  const handleBuy = (side: "yes" | "no") => {
+    setModal(side);
+    setReview(false);
+  };
+  const closeModal = () => {
+    setModal(null);
+    setReview(false);
+    setError("");
+  };
 
   // Kartın boş alanına tıklanınca detay sayfasına yönlendir
   const handleCardClick = (e: React.MouseEvent) => {
@@ -88,6 +96,28 @@ export function MarketCard({ market }: Props) {
     }));
     setError("");
     setModal(null);
+  };
+
+  // Yeni: Devam/Review butonu
+  const handleReview = () => {
+    setError("");
+    if (!isConnected || !connectedAddress) {
+      setError("Wallet is not connected.");
+      return;
+    }
+    if (modal !== "yes" && modal !== "no") {
+      setError("Invalid bet side.");
+      return;
+    }
+    if (isNaN(amount) || amount < MIN_BET || amount > market.maxBet) {
+      setError(`Bet amount must be between ${MIN_BET} - ${market.maxBet} ETH.`);
+      return;
+    }
+    if (amount > balance) {
+      setError(`Insufficient balance. You have ${balance.toFixed(4)} ETH, but trying to bet ${amount} ETH.`);
+      return;
+    }
+    setReview(true);
   };
 
   const getStatusIcon = () => {
@@ -185,36 +215,55 @@ export function MarketCard({ market }: Props) {
               <ModalTitle>{market.title}</ModalTitle>
               <CloseButton onClick={closeModal}>×</CloseButton>
             </ModalHeader>
-            <AmountRow>
-              <AmountInput
-                type="number"
-                min={MIN_BET}
-                max={market.maxBet}
-                step={0.001}
-                value={amount}
-                onChange={e => handleAmountChange(Number(e.target.value))}
-                placeholder="Amount (ETH)"
-              />
-              <AmountButton onClick={() => handleAmountChange(MIN_BET)}>Min</AmountButton>
-              <AmountButton onClick={() => handleAmountChange(market.maxBet)}>Max</AmountButton>
-            </AmountRow>
-            <SliderRow>
-              <Slider
-                type="range"
-                min={MIN_BET}
-                max={market.maxBet}
-                step={0.001}
-                value={amount}
-                onChange={e => handleAmountChange(Number(e.target.value))}
-              />
-            </SliderRow>
-            {error && <div style={{color: '#ff4d4f', marginBottom: 8}}>{error}</div>}
-            <ConfirmButton $side={modal} disabled={!!error} onClick={handleConfirmBet}>
-              Buy {modal === "yes" ? "Yes" : "No"}
-              <ToWin>
-                To win {getToWin()}
-              </ToWin>
-            </ConfirmButton>
+            {!review ? (
+              <>
+                <AmountRow>
+                  <AmountInput
+                    type="number"
+                    min={MIN_BET}
+                    max={market.maxBet}
+                    step={0.001}
+                    value={amount}
+                    onChange={e => handleAmountChange(Number(e.target.value))}
+                    placeholder="Amount (ETH)"
+                  />
+                  <AmountButton onClick={() => handleAmountChange(MIN_BET)}>Min</AmountButton>
+                  <AmountButton onClick={() => handleAmountChange(market.maxBet)}>Max</AmountButton>
+                </AmountRow>
+                <SliderRow>
+                  <Slider
+                    type="range"
+                    min={MIN_BET}
+                    max={market.maxBet}
+                    step={0.001}
+                    value={amount}
+                    onChange={e => handleAmountChange(Number(e.target.value))}
+                  />
+                </SliderRow>
+                {error && <div style={{color: '#ff4d4f', marginBottom: 8}}>{error}</div>}
+                <ConfirmButton $side={modal} disabled={!!error} onClick={handleReview}>
+                  Review Bet
+                  <ToWin>
+                    To win {getToWin()}
+                  </ToWin>
+                </ConfirmButton>
+              </>
+            ) : (
+              <>
+                <ReviewBox>
+                  <ReviewTitle>Review Your Bet</ReviewTitle>
+                  <ReviewItem><b>Market:</b> {market.title}</ReviewItem>
+                  <ReviewItem><b>Side:</b> {modal === "yes" ? "Yes" : "No"}</ReviewItem>
+                  <ReviewItem><b>Amount:</b> {amount} ETH</ReviewItem>
+                  <ReviewItem><b>Potential Win:</b> {getToWin()}</ReviewItem>
+                </ReviewBox>
+                {error && <div style={{color: '#ff4d4f', marginBottom: 8}}>{error}</div>}
+                <ButtonRow style={{marginTop: 16}}>
+                  <ConfirmButton $side={modal} onClick={handleConfirmBet}>Confirm</ConfirmButton>
+                  <CancelButton type="button" onClick={() => setReview(false)}>Cancel</CancelButton>
+                </ButtonRow>
+              </>
+            )}
           </ModalContent>
         </FullCoverModal>
       )}
@@ -642,4 +691,34 @@ const ToWin = styled.div`
   font-weight: 500;
   margin-top: 4px;
   opacity: 0.9;
+`; 
+
+// Yeni: Review ekranı için stiller
+const ReviewBox = styled.div`
+  padding: 18px 8px 8px 8px;
+  text-align: left;
+`;
+const ReviewTitle = styled.div`
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+`;
+const ReviewItem = styled.div`
+  font-size: 1rem;
+  margin-bottom: 6px;
+`;
+const CancelButton = styled.button`
+  background: ${({ theme }) => theme.colors.accentRed};
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-left: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+  &:hover {
+    background: #c0392b;
+  }
 `; 

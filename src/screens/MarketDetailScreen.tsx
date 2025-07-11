@@ -2,8 +2,10 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
+import type { AppDispatch } from '@/store';
 import { RootState } from "@/store";
 import { addBet, closeMarket, claimReward } from "@/store/marketsSlice";
+import { closeMarketAndDistributeRewards } from "@/store/marketsSlice";
 import { spendBalance } from "@/store/walletSlice";
 import { Market, BetSide } from "@/types/market";
 import styled from "styled-components";
@@ -62,12 +64,13 @@ const PieDot = styled.span<{ color: string }>`
 export default function MarketDetailScreen() {
   const { id } = useParams<{ id: string }>();
   const market: Market | undefined = useSelector((state: RootState) => state.markets.markets.find(m => m.id === id));
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const [amount, setAmount] = useState("");
   const [side, setSide] = useState<BetSide>("yes");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const { address: connectedAddress, isConnected } = useWalletConnection();
+  const [review, setReview] = useState(false); // Yeni: review ekranı için state
   
   // useEffect ile cüzdan bağlantı kontrolü ve local state kaldırıldı
 
@@ -95,7 +98,8 @@ export default function MarketDetailScreen() {
   const totalBets = market.bets.length;
   const timeLeft = market.closesAt - Date.now();
 
-  const handleBet = (e: React.FormEvent) => {
+  // Yeni: Devam/Review butonu
+  const handleReview = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
@@ -112,10 +116,16 @@ export default function MarketDetailScreen() {
       setError(`Insufficient balance. You have ${balance.toFixed(4)} ETH, but trying to bet ${betAmount} ETH.`);
       return;
     }
-    
-    // Deduct bet amount from balance
+    setReview(true);
+  };
+
+  // Yeni: Onayla butonu
+  const handleConfirmBet = () => {
+    setError("");
+    setSuccess("");
+    const betAmount = Number(amount);
+    if (!connectedAddress) return;
     dispatch(spendBalance({ address: connectedAddress, amount: betAmount }));
-    
     dispatch(addBet({
       id: uuidv4(),
       userId: connectedAddress,
@@ -126,16 +136,17 @@ export default function MarketDetailScreen() {
     }));
     setSuccess("Bet placed successfully!");
     setAmount("");
+    setReview(false);
   };
 
   const handleCloseMarket = (result: BetSide) => {
-    dispatch(closeMarket({ marketId: market.id, result }));
+    if (!market.id) return;
+    dispatch(closeMarketAndDistributeRewards({ marketId: String(market.id), result }));
   };
 
   const handleClaim = () => {
-    if (connectedAddress) {
-      dispatch(claimReward({ userId: connectedAddress, marketId: market.id }));
-    }
+    if (!connectedAddress) return;
+    dispatch(claimReward({ userId: connectedAddress, marketId: market.id }));
   };
 
   const getStatusBadge = () => {
@@ -344,50 +355,72 @@ export default function MarketDetailScreen() {
           <UnifiedRight>
             <ShadowBox>
               {market.status === "open" ? (
-                <BetForm onSubmit={handleBet}>
-                  <FormRow>
-                    <FormCol>
-                      <FormLabel>Bet Amount (ETH)</FormLabel>
-                      <FormInput
-                        type="number"
-                        step="0.001"
-                        min={MIN_BET}
-                        max={MAX_BET}
-                        value={amount}
-                        onChange={e => {
-                          const val = Number(e.target.value);
-                          setAmount(e.target.value);
-                          if (val < MIN_BET) setError(`Minimum bet is ${MIN_BET} ETH`);
-                          else if (val > MAX_BET) setError(`Maximum bet is ${MAX_BET} ETH`);
-                          else setError("");
-                        }}
-                        required
-                      />
-                    </FormCol>
-                    <FormCol>
-                      <FormLabel>Side</FormLabel>
-                      <SideButtonRow>
-                        <SideButton type="button" $active={side === "yes"} $side="yes" onClick={() => setSide("yes")}>Yes</SideButton>
-                        <SideButton type="button" $active={side === "no"} $side="no" onClick={() => setSide("no")}>No</SideButton>
-                      </SideButtonRow>
-                    </FormCol>
-                  </FormRow>
-                  <input
-                    type="range"
-                    min={MIN_BET}
-                    max={MAX_BET}
-                    step={0.001}
-                    value={Number(amount)}
-                    onChange={e => {
-                      setAmount(e.target.value);
-                      setError("");
-                    }}
-                    style={{ width: '100%', margin: '8px 0' }}
-                  />
-                  {error && <ErrorBox><FaTimesCircle /> {error}</ErrorBox>}
-                  {success && <SuccessBox><FaCheckCircle /> {success}</SuccessBox>}
-                  <SubmitButton type="submit" disabled={!!error}>Place Bet</SubmitButton>
-                </BetForm>
+                !review ? (
+                  <BetForm onSubmit={handleReview}>
+                    <FormRow>
+                      <FormCol>
+                        <FormLabel>Bet Amount (ETH)</FormLabel>
+                        <FormInput
+                          type="number"
+                          step="0.001"
+                          min={MIN_BET}
+                          max={MAX_BET}
+                          value={amount}
+                          onChange={e => {
+                            const val = Number(e.target.value);
+                            setAmount(e.target.value);
+                            if (val < MIN_BET) setError(`Minimum bet is ${MIN_BET} ETH`);
+                            else if (val > MAX_BET) setError(`Maximum bet is ${MAX_BET} ETH`);
+                            else setError("");
+                          }}
+                          required
+                        />
+                      </FormCol>
+                      <FormCol>
+                        <FormLabel>Side</FormLabel>
+                        <SideButtonRow>
+                          <SideButton type="button" $active={side === "yes"} $side="yes" onClick={() => setSide("yes")}>Yes</SideButton>
+                          <SideButton type="button" $active={side === "no"} $side="no" onClick={() => setSide("no")}>No</SideButton>
+                        </SideButtonRow>
+                      </FormCol>
+                    </FormRow>
+                    <input
+                      type="range"
+                      min={MIN_BET}
+                      max={MAX_BET}
+                      step={0.001}
+                      value={Number(amount)}
+                      onChange={e => {
+                        setAmount(e.target.value);
+                        setError("");
+                      }}
+                      style={{ width: '100%', margin: '8px 0' }}
+                    />
+                    {error && <ErrorBox><FaTimesCircle /> {error}</ErrorBox>}
+                    {success && <SuccessBox><FaCheckCircle /> {success}</SuccessBox>}
+                    <SubmitButton type="submit" disabled={!!error}>Review Bet</SubmitButton>
+                  </BetForm>
+                ) : (
+                  <ReviewBox>
+                    <ReviewTitle>Review Your Bet</ReviewTitle>
+                    <ReviewItem><b>Market:</b> {market.title}</ReviewItem>
+                    <ReviewItem><b>Side:</b> {side === "yes" ? "Yes" : "No"}</ReviewItem>
+                    <ReviewItem><b>Amount:</b> {amount} ETH</ReviewItem>
+                    <ReviewItem><b>Potential Win:</b> {/* Potansiyel kazanç hesapla */}
+                      {(() => {
+                        const odds = side === "yes" ? 2.273 : 1.754;
+                        const betAmount = Number(amount);
+                        return `${(betAmount * odds).toFixed(4)} ETH`;
+                      })()}
+                    </ReviewItem>
+                    {error && <ErrorBox><FaTimesCircle /> {error}</ErrorBox>}
+                    {success && <SuccessBox><FaCheckCircle /> {success}</SuccessBox>}
+                    <ButtonRow style={{marginTop: 16}}>
+                      <SubmitButton type="button" onClick={handleConfirmBet}>Confirm</SubmitButton>
+                      <CancelButton type="button" onClick={() => setReview(false)}>Cancel</CancelButton>
+                    </ButtonRow>
+                  </ReviewBox>
+                )
               ) : (
                 <ClosedText>Market closed.</ClosedText>
               )}
@@ -979,4 +1012,40 @@ const SuccessBox = styled.div`
   color: ${({ theme }) => theme.colors.accentGreen};
   font-size: 15px;
   margin-bottom: 10px;
+`;
+
+// Yeni: Review ekranı için stiller
+const ReviewBox = styled.div`
+  padding: 18px 8px 8px 8px;
+  text-align: left;
+`;
+const ReviewTitle = styled.div`
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+`;
+const ReviewItem = styled.div`
+  font-size: 1rem;
+  margin-bottom: 6px;
+`;
+const CancelButton = styled.button`
+  background: ${({ theme }) => theme.colors.accentRed};
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-left: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+  &:hover {
+    background: #c0392b;
+  }
+`;
+
+const ButtonRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 `;

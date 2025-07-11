@@ -5,8 +5,13 @@ import { useDispatch } from "react-redux";
 import { addMarket } from "@/store/marketsSlice";
 import { Market } from "@/types/market";
 import { v4 as uuidv4 } from "uuid";
-import { FaPlus, FaCalendarAlt, FaCoins, FaInfoCircle, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
+import { FaPlus, FaCalendarAlt, FaCoins, FaInfoCircle, FaCheckCircle, FaExclamationTriangle, FaTimesCircle } from 'react-icons/fa';
 import { useWalletConnection } from '@/hooks/useWalletConnection';
+import { ethers } from "ethers";
+import Confetti from "react-confetti";
+import { useWindowSize } from "@react-hook/window-size";
+
+const CENTRAL_WALLET = '0xcc78505FE8707a1D85229BA0E7177aE26cE0f17D';
 
 export default function CreateMarketScreen() {
   const dispatch = useDispatch();
@@ -19,6 +24,10 @@ export default function CreateMarketScreen() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const { address: connectedAddress, isConnected } = useWalletConnection();
+  const [review, setReview] = useState(false); // Review ekranı için state
+  const [loading, setLoading] = useState(false); // Transfer loading
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [windowWidth, windowHeight] = useWindowSize();
 
   // useEffect ile cüzdan bağlantı kontrolü ve local state kaldırıldı
 
@@ -51,31 +60,107 @@ export default function CreateMarketScreen() {
       setError("Closing time must be at least 1 hour from now.");
       return;
     }
-    const newMarket: Market = {
-      id: uuidv4(),
-      title,
-      description,
-      creatorId: connectedAddress,
-      createdAt: Date.now(),
-      closesAt: closesAtTimestamp,
-      initialPool,
-      minBet,
-      maxBet,
-      status: "open",
-      bets: []
-    };
-    dispatch(addMarket(newMarket));
-    setSuccess("Market created successfully!");
-    setTitle("");
-    setDescription("");
-    setClosesAt("");
-    setMinBet(0.01);
-    setMaxBet(1);
-    setInitialPool(0.5);
+    setReview(true);
+  };
+
+  // Review butonu
+  const handleReview = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    if (!title.trim() || !description.trim()) {
+      setError("Title and description are required.");
+      return;
+    }
+    if (!closesAt) {
+      setError("Closing time must be selected.");
+      return;
+    }
+    if (minBet <= 0 || maxBet <= 0 || minBet >= maxBet) {
+      setError("Min/max bet limits are invalid.");
+      return;
+    }
+    if (initialPool < 0.1) {
+      setError("Initial pool must be at least 0.1 ETH.");
+      return;
+    }
+    if (!isConnected || !connectedAddress) {
+      setError("Wallet is not connected.");
+      return;
+    }
+    const closesAtTimestamp = new Date(closesAt).getTime();
+    if (closesAtTimestamp < Date.now() + 60 * 60 * 1000) {
+      setError("Closing time must be at least 1 hour from now.");
+      return;
+    }
+    setReview(true);
+  };
+
+  // Onayla butonu
+  const handleConfirm = async () => {
+    setError("");
+    setSuccess("");
+    setLoading(true);
+    try {
+      // 1. Initial pool kadar ETH transfer et
+      if (!window.ethereum) throw new Error('Ethereum wallet not found.');
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const tx = await signer.sendTransaction({
+        to: CENTRAL_WALLET,
+        value: ethers.parseEther(initialPool.toString()),
+      });
+      // 2. Market'i ekle
+      const closesAtTimestamp = new Date(closesAt).getTime();
+      const newMarket: Market = {
+        id: uuidv4(),
+        title,
+        description,
+        creatorId: connectedAddress!,
+        createdAt: Date.now(),
+        closesAt: closesAtTimestamp,
+        initialPool,
+        minBet,
+        maxBet,
+        status: "open",
+        bets: []
+      };
+      dispatch(addMarket(newMarket));
+      setSuccess("Market created successfully! Transaction hash: " + tx.hash);
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 5000);
+      setTitle("");
+      setDescription("");
+      setClosesAt("");
+      setMinBet(0.01);
+      setMaxBet(1);
+      setInitialPool(0.5);
+      setReview(false);
+    } catch (err: any) {
+      setError(err.message || 'Transaction failed.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <Container>
+      {/* Başarı ve konfeti en üstte */}
+      {showConfetti && <Confetti width={windowWidth} height={windowHeight} numberOfPieces={350} recycle={false} style={{ zIndex: 1000 }} />} 
+      {success && (
+        <SuccessContainer style={{
+          fontSize: '1.2rem', fontWeight: 700, background: '#112e1a', color: '#16c784', border: '2px solid #16c784', borderRadius: 14, padding: 20, margin: '24px auto 18px auto', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: 600, boxShadow: '0 2px 16px #16c78422', zIndex: 100 }}>
+          <FaCheckCircle style={{fontSize: 38, color: '#16c784', marginBottom: 8}} />
+          🎉 Market created successfully! 🎉
+          <span style={{fontSize: '1rem', fontWeight: 400, color: '#fff', marginTop: 10, wordBreak: 'break-all'}}>
+            Transaction hash:
+            <HashBox onClick={() => navigator.clipboard.writeText(success.match(/0x[a-fA-F0-9]{64,}/)?.[0] || '')} title="Copy hash">
+              {success.match(/0x[a-fA-F0-9]{64,}/)?.[0] || ''}
+              <span style={{fontSize: 13, color: '#16c784', marginLeft: 8, cursor: 'pointer'}}>Copy</span>
+            </HashBox>
+          </span>
+        </SuccessContainer>
+      )}
       <Header>
         <HeaderIcon>
           <FaPlus />
@@ -86,127 +171,165 @@ export default function CreateMarketScreen() {
         </HeaderContent>
       </Header>
 
-      <Form onSubmit={handleSubmit}>
-        <FormSection>
-          <SectionTitle>
-            <FaInfoCircle />
-            Market Information
-          </SectionTitle>
-          
-          <FormGroup>
-            <Label>Market Title</Label>
-            <Input 
-              value={title} 
-              onChange={e => setTitle(e.target.value)} 
-              placeholder="e.g., Will Bitcoin reach $100k by end of year?"
-              required 
-            />
-          </FormGroup>
-
-          <FormGroup>
-            <Label>Description</Label>
-            <TextArea 
-              value={description} 
-              onChange={e => setDescription(e.target.value)} 
-              placeholder="Provide a clear description of what users are betting on..."
-              required 
-            />
-          </FormGroup>
-        </FormSection>
-
-        <FormSection>
-          <SectionTitle>
-            <FaCalendarAlt />
-            Market Settings
-          </SectionTitle>
-          
-          <FormGroup>
-            <Label>Closing Time</Label>
-            <Input 
-              type="datetime-local" 
-              value={closesAt} 
-              onChange={e => setClosesAt(e.target.value)} 
-              required 
-            />
-            <HelpText>Market will close at this time and no more bets will be accepted</HelpText>
-          </FormGroup>
-
-          <BetLimitsRow>
-            <FormGroup>
-              <Label>Minimum Bet (ETH)</Label>
-              <Input 
-                type="number" 
-                step="0.01" 
-                min={0.01} 
-                value={minBet} 
-                onChange={e => setMinBet(Number(e.target.value))} 
-                required 
-              />
-            </FormGroup>
+      {!review ? (
+        <Form onSubmit={handleReview}>
+          <FormSection>
+            <SectionTitle>
+              <FaInfoCircle />
+              Market Information
+            </SectionTitle>
             
             <FormGroup>
-              <Label>Maximum Bet (ETH)</Label>
+              <Label>Market Title</Label>
               <Input 
-                type="number" 
-                step="0.01" 
-                min={0.01} 
-                value={maxBet} 
-                onChange={e => setMaxBet(Number(e.target.value))} 
+                value={title} 
+                onChange={e => setTitle(e.target.value)} 
+                placeholder="e.g., Will Bitcoin reach $100k by end of year?"
                 required 
               />
             </FormGroup>
-          </BetLimitsRow>
-          <BetLimitsInfo>
-            Minimum bet must be at least 0.001 ETH and maximum bet cannot exceed 5 ETH. The values you select must be within this range.
-          </BetLimitsInfo>
-        </FormSection>
 
-        <FormSection>
-          <SectionTitle>
-            <FaCoins />
-            Pool Configuration
-          </SectionTitle>
+            <FormGroup>
+              <Label>Description</Label>
+              <TextArea 
+                value={description} 
+                onChange={e => setDescription(e.target.value)} 
+                placeholder="Provide a clear description of what users are betting on..."
+                required 
+              />
+            </FormGroup>
+          </FormSection>
+
+          <FormSection>
+            <SectionTitle>
+              <FaCalendarAlt />
+              Market Settings
+            </SectionTitle>
+            
+            <FormGroup>
+              <Label>Closing Time</Label>
+              <Input 
+                type="datetime-local" 
+                value={closesAt} 
+                onChange={e => setClosesAt(e.target.value)} 
+                required 
+              />
+              <HelpText>Market will close at this time and no more bets will be accepted</HelpText>
+            </FormGroup>
+
+            <BetLimitsRow>
+              <FormGroup>
+                <Label>Minimum Bet (ETH)</Label>
+                <Input 
+                  type="number" 
+                  step="0.01" 
+                  min={0.01} 
+                  value={minBet} 
+                  onChange={e => setMinBet(Number(e.target.value))} 
+                  required 
+                />
+              </FormGroup>
+              
+              <FormGroup>
+                <Label>Maximum Bet (ETH)</Label>
+                <Input 
+                  type="number" 
+                  step="0.01" 
+                  min={0.01} 
+                  value={maxBet} 
+                  onChange={e => setMaxBet(Number(e.target.value))} 
+                  required 
+                />
+              </FormGroup>
+            </BetLimitsRow>
+            <BetLimitsInfo>
+              Minimum bet must be at least 0.001 ETH and maximum bet cannot exceed 5 ETH. The values you select must be within this range.
+            </BetLimitsInfo>
+          </FormSection>
+
+          <FormSection>
+            <SectionTitle>
+              <FaCoins />
+              Pool Configuration
+            </SectionTitle>
+            
+            <FormGroup>
+              <Label>Initial Pool (ETH)</Label>
+              <Input 
+                type="number" 
+                step="0.01" 
+                min={0.1} 
+                value={initialPool} 
+                onChange={e => setInitialPool(Number(e.target.value))} 
+                required 
+              />
+              <HelpText>Starting amount in the betting pool</HelpText>
+            </FormGroup>
+          </FormSection>
+
+          {error && (
+            <ErrorContainer>
+              <ErrorIcon>
+                <FaExclamationTriangle />
+              </ErrorIcon>
+              <ErrorText>{error}</ErrorText>
+            </ErrorContainer>
+          )}
           
-          <FormGroup>
-            <Label>Initial Pool (ETH)</Label>
-            <Input 
-              type="number" 
-              step="0.01" 
-              min={0.1} 
-              value={initialPool} 
-              onChange={e => setInitialPool(Number(e.target.value))} 
-              required 
-            />
-            <HelpText>Starting amount in the betting pool</HelpText>
-          </FormGroup>
-        </FormSection>
+          {success && (
+            <SuccessContainer style={{fontSize: '1.2rem', fontWeight: 700, background: '#16c78422', color: '#16c784', border: '2px solid #16c784', borderRadius: 12, padding: 16, margin: '18px 0', textAlign: 'center'}}>
+              🎉 Market created successfully! 🎉<br />
+              <span style={{fontSize: '1rem', fontWeight: 400, color: '#333'}}>{success}</span>
+            </SuccessContainer>
+          )}
 
-        {error && (
-          <ErrorContainer>
-            <ErrorIcon>
-              <FaExclamationTriangle />
-            </ErrorIcon>
-            <ErrorText>{error}</ErrorText>
-          </ErrorContainer>
-        )}
-        
-        {success && (
-          <SuccessContainer>
-            <SuccessIcon>
-              <FaCheckCircle />
-            </SuccessIcon>
-            <SuccessText>{success}</SuccessText>
-          </SuccessContainer>
-        )}
-
-        <SubmitButton type="submit" disabled={!isConnected}>
-          <FaPlus />
-          Create Market
-        </SubmitButton>
-        <InfoBox>
-          Newly created markets must first be approved before going live. If your market is not approved, the ETH you provided for the pool will be refunded to your wallet.
-        </InfoBox>
-      </Form>
+          <SubmitButton type="submit" disabled={!isConnected}>Review</SubmitButton>
+          <InfoBox>
+            Newly created markets must first be approved before going live. If your market is not approved, the ETH you provided for the pool will be refunded to your wallet.
+          </InfoBox>
+        </Form>
+      ) : (
+        <ReviewBox>
+          <ReviewHeader>
+            <FaInfoCircle style={{ fontSize: 38, color: '#7f5af0', marginBottom: 8 }} />
+            <ReviewTitle>Review Market Details</ReviewTitle>
+          </ReviewHeader>
+          <ReviewGrid>
+            <ReviewField>
+              <FieldLabel>Title</FieldLabel>
+              <FieldValue>{title}</FieldValue>
+            </ReviewField>
+            <ReviewField>
+              <FieldLabel>Description</FieldLabel>
+              <FieldValue>{description}</FieldValue>
+            </ReviewField>
+            <ReviewField>
+              <FieldLabel>Min/Max Bet</FieldLabel>
+              <FieldValue>{minBet} / {maxBet} ETH</FieldValue>
+            </ReviewField>
+            <ReviewField>
+              <FieldLabel>Initial Pool</FieldLabel>
+              <FieldValue>{initialPool} ETH</FieldValue>
+            </ReviewField>
+            <ReviewField>
+              <FieldLabel>Closing Time</FieldLabel>
+              <FieldValue>{closesAt}</FieldValue>
+            </ReviewField>
+          </ReviewGrid>
+          {error && <ErrorContainer><ErrorIcon><FaExclamationTriangle /></ErrorIcon><ErrorText>{error}</ErrorText></ErrorContainer>}
+          {success && (
+            <SuccessContainer style={{fontSize: '1.2rem', fontWeight: 700, background: '#16c78422', color: '#16c784', border: '2px solid #16c784', borderRadius: 12, padding: 16, margin: '18px 0', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+              <FaCheckCircle style={{fontSize: 38, color: '#16c784', marginBottom: 8}} />
+              🎉 Market created successfully! 🎉<br />
+              <span style={{fontSize: '1rem', fontWeight: 400, color: '#333'}}>{success}</span>
+            </SuccessContainer>
+          )}
+          <ButtonRow style={{marginTop: 24}}>
+            <SubmitButton type="button" onClick={handleConfirm} disabled={loading || !!success} style={{ fontSize: 18, padding: '12px 32px', background: '#16c784', boxShadow: '0 2px 8px #16c78444' }}>{loading ? 'Processing...' : 'Confirm & Create'}</SubmitButton>
+            <CancelButton type="button" onClick={() => setReview(false)} disabled={loading || !!success}>Cancel</CancelButton>
+          </ButtonRow>
+        </ReviewBox>
+      )}
     </Container>
   );
 }
@@ -502,4 +625,87 @@ const BetLimitsInfo = styled.p`
   font-size: 13px;
   margin: 8px 0 0 0;
   padding-left: 2px;
+`; 
+
+// Yeni: Review ekranı için stiller
+const ReviewBox = styled.div`
+  padding: 28px 18px 18px 18px;
+  text-align: left;
+  background: ${({ theme }) => theme.colors.background};
+  border-radius: 18px;
+  box-shadow: 0 2px 12px rgba(127,90,240,0.08);
+  margin: 0 auto;
+  max-width: 520px;
+`;
+const ReviewHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 18px;
+`;
+const ReviewTitle = styled.div`
+  font-size: 1.35rem;
+  font-weight: 800;
+  margin-bottom: 2px;
+  color: ${({ theme }) => theme.colors.primary};
+`;
+const ReviewGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-bottom: 18px;
+`;
+const ReviewField = styled.div`
+  background: ${({ theme }) => theme.colors.card};
+  border-radius: 10px;
+  padding: 14px 18px;
+  box-shadow: 0 1px 4px rgba(127,90,240,0.04);
+`;
+const FieldLabel = styled.div`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+`;
+const FieldValue = styled.div`
+  color: ${({ theme }) => theme.colors.primary};
+  font-size: 1.08rem;
+  font-weight: 700;
+`;
+const ButtonRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+`;
+const CancelButton = styled.button`
+  background: ${({ theme }) => theme.colors.accentRed};
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-left: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+  &:hover {
+    background: #c0392b;
+  }
+`; 
+
+const HashBox = styled.span`
+  display: inline-block;
+  background: #1a3a2a;
+  color: #16c784;
+  font-family: monospace;
+  font-size: 0.98rem;
+  padding: 4px 10px;
+  border-radius: 8px;
+  margin-left: 8px;
+  cursor: pointer;
+  user-select: all;
+  transition: background 0.2s;
+  &:hover {
+    background: #1f4d36;
+  }
 `; 
