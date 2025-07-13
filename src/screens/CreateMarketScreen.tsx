@@ -11,7 +11,7 @@ import { ethers } from "ethers";
 import Confetti from "react-confetti";
 import { useWindowSize } from "@react-hook/window-size";
 
-const CENTRAL_WALLET = '0xcc78505FE8707a1D85229BA0E7177aE26cE0f17D';
+const CENTRAL_WALLET = '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6';
 
 export default function CreateMarketScreen() {
   const dispatch = useDispatch();
@@ -110,6 +110,7 @@ export default function CreateMarketScreen() {
         to: CENTRAL_WALLET,
         value: ethers.parseEther(initialPool.toString()),
       });
+      
       // 2. Market'i ekle
       const closesAtTimestamp = new Date(closesAt).getTime();
       const newMarket: Market = {
