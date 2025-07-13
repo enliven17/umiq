@@ -106,9 +106,17 @@ export default function CreateMarketScreen() {
       if (!window.ethereum) throw new Error('Ethereum wallet not found.');
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
+      
+      // Gas estimation ekle
+      const gasEstimate = await provider.estimateGas({
+        to: CENTRAL_WALLET,
+        value: ethers.parseEther(initialPool.toString()),
+      });
+      
       const tx = await signer.sendTransaction({
         to: CENTRAL_WALLET,
         value: ethers.parseEther(initialPool.toString()),
+        gasLimit: gasEstimate,
       });
       
       // 2. Market'i ekle
@@ -138,6 +146,7 @@ export default function CreateMarketScreen() {
       setInitialPool(0.5);
       setReview(false);
     } catch (err: unknown) {
+      console.error('Transaction error:', err);
       setError((err as Error).message || 'Transaction failed.');
     } finally {
       setLoading(false);

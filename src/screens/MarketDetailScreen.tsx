@@ -123,8 +123,23 @@ export default function MarketDetailScreen() {
   const handleConfirmBet = () => {
     setError("");
     setSuccess("");
+    
+    if (!isConnected || !connectedAddress) {
+      setError("Wallet is not connected.");
+      return;
+    }
+    
     const betAmount = Number(amount);
-    if (!connectedAddress) return;
+    if (isNaN(betAmount) || betAmount < market.minBet || betAmount > market.maxBet) {
+      setError(`Bet amount must be between ${market.minBet} - ${market.maxBet} ETH.`);
+      return;
+    }
+    
+    if (betAmount > balance) {
+      setError(`Insufficient balance. You have ${balance.toFixed(4)} ETH, but trying to bet ${betAmount} ETH.`);
+      return;
+    }
+    
     dispatch(spendBalance({ address: connectedAddress, amount: betAmount }));
     dispatch(addBet({
       id: uuidv4(),
