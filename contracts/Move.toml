@@ -1,0 +1,11 @@
+[package]
+name = "umiq"
+version = "1.0.0"
+authors = ["UMIq Team"]
+upgrade_policy = "compatible"
+
+[addresses]
+umiq = "0x8a4d9bf1a377e7ef93f2c8af322012e5571554b9aa07108cdd876c554f96c567"
+
+[dependencies]
+AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework/", rev = "main" } 
