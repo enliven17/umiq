@@ -1,10 +1,10 @@
 [package]
-name = "umiq"
+name = "counter"
 version = "1.0.0"
 authors = []
 
 [addresses]
-umiq = "0x8a4d9bf1a377e7ef93f2c8af322012e5571554b9aa07108cdd876c554f96c567"
+example = "0x71197e7a1CA5A2cb2AD82432B924F69B1E3dB123"
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-framework.git"
