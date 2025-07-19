@@ -55,7 +55,8 @@ UMIq is a next-generation decentralized prediction market platform that democrat
 ### Prerequisites
 - Node.js 18+ 
 - MetaMask wallet
-- UMI Devnet network configured
+- Umi Devnet network configured
+- Private key for deployment
 
 ### Installation
 
@@ -67,21 +68,38 @@ cd umiq
 # Install dependencies
 npm install
 
-# Start development server
-npm run dev
+# Setup environment and deploy contract
+npm run setup
 ```
-
-Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ### Configuration
 
-1. **Connect MetaMask** to UMI Devnet
-2. **Add UMI Devnet** to your wallet:
+1. **Set your private key** as environment variable:
+   ```bash
+   export PRIVATE_KEY=your_private_key_here
+   ```
+
+2. **Run setup script** to deploy contract and create environment files:
+   ```bash
+   npm run setup
+   ```
+
+3. **Connect MetaMask** to Umi Devnet:
    - Network Name: Umi Devnet
    - RPC URL: https://devnet.uminetwork.com
    - Chain ID: 42069
    - Currency Symbol: ETH
-   - Block Explorer URL: https://devnet.explorer.moved.network
+   - Block Explorer URL: https://devnet.explorer.uminetwork.com
+
+4. **Get test ETH** from faucet if needed:
+   - Faucet URL: https://devnet.uminetwork.com/faucet
+
+5. **Start development server**:
+   ```bash
+   npm run dev
+   ```
+
+Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ## 📱 How to Use
 
@@ -131,7 +149,33 @@ npm run dev          # Start development server
 npm run build        # Build for production
 npm run start        # Start production server
 npm run lint         # Run ESLint
+npm run setup        # Setup environment and deploy contract
+npm run deploy       # Deploy contract to Umi devnet
+npm run compile      # Compile Solidity contracts
 ```
+
+### Deployment
+
+The project includes automated deployment scripts for Umi devnet:
+
+1. **Setup and Deploy**:
+   ```bash
+   npm run setup
+   ```
+   This will:
+   - Deploy the PredictionMarket contract
+   - Create environment files
+   - Save deployment information
+
+2. **Manual Deploy**:
+   ```bash
+   npm run deploy
+   ```
+
+3. **Compile Contracts**:
+   ```bash
+   npm run compile
+   ```
 
 ### Key Components
 

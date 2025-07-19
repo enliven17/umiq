@@ -20,7 +20,6 @@ export default function CreateMarketScreen() {
   const [closesAt, setClosesAt] = useState("");
   const [minBet, setMinBet] = useState(0.01);
   const [maxBet, setMaxBet] = useState(1);
-  const [initialPool, setInitialPool] = useState(0.5);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const { address: connectedAddress, isConnected } = useWalletConnection();
@@ -47,10 +46,7 @@ export default function CreateMarketScreen() {
       setError("Min/max bet limits are invalid.");
       return;
     }
-    if (initialPool < 0.1) {
-      setError("Initial pool must be at least 0.1 ETH.");
-      return;
-    }
+
     if (!isConnected || !connectedAddress) {
       setError("Wallet is not connected.");
       return;
@@ -80,10 +76,7 @@ export default function CreateMarketScreen() {
       setError("Min/max bet limits are invalid.");
       return;
     }
-    if (initialPool < 0.1) {
-      setError("Initial pool must be at least 0.1 ETH.");
-      return;
-    }
+
     if (!isConnected || !connectedAddress) {
       setError("Wallet is not connected.");
       return;
@@ -102,39 +95,35 @@ export default function CreateMarketScreen() {
     setSuccess("");
     setLoading(true);
     try {
-      // 1. Initial pool kadar ETH transfer et
+      // Contract address - Umi Devnet
+      const contractAddress = "0x0000000000000000000000000000000000000000"; // Will be updated after deployment
+      if (!contractAddress || contractAddress === "0x0000000000000000000000000000000000000000") {
+        setError('Contract not deployed yet. Please wait for deployment to complete.');
+        setLoading(false);
+        return;
+      }
+
       if (!window.ethereum) throw new Error('Ethereum wallet not found.');
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       
-      // Gas estimation ekle
-      const gasEstimate = await provider.estimateGas({
-        to: CENTRAL_WALLET,
-        value: ethers.parseEther(initialPool.toString()),
-      });
+      // Contract ABI for createMarket function
+      const contractABI = [
+        "function createMarket(string memory title, string memory description, uint256 closingTime, uint256 minBet, uint256 maxBet) external"
+      ];
       
-      const tx = await signer.sendTransaction({
-        to: CENTRAL_WALLET,
-        value: ethers.parseEther(initialPool.toString()),
-        gasLimit: gasEstimate,
-      });
+      const contract = new ethers.Contract(contractAddress, contractABI, signer);
       
-      // 2. Market'i ekle
-      const closesAtTimestamp = new Date(closesAt).getTime();
-      const newMarket: Market = {
-        id: uuidv4(),
+      const closesAtTimestamp = Math.floor(new Date(closesAt).getTime() / 1000); // Convert to seconds
+      
+      const tx = await contract.createMarket(
         title,
         description,
-        creatorId: connectedAddress!,
-        createdAt: Date.now(),
-        closesAt: closesAtTimestamp,
-        initialPool,
-        minBet,
-        maxBet,
-        status: "open",
-        bets: []
-      };
-      dispatch(addMarket(newMarket));
+        closesAtTimestamp,
+        ethers.parseEther(minBet.toString()),
+        ethers.parseEther(maxBet.toString())
+      );
+      
       setSuccess("Market created successfully! Transaction hash: " + tx.hash);
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 5000);
@@ -143,7 +132,6 @@ export default function CreateMarketScreen() {
       setClosesAt("");
       setMinBet(0.01);
       setMaxBet(1);
-      setInitialPool(0.5);
       setReview(false);
     } catch (err: unknown) {
       console.error('Transaction error:', err);
@@ -257,25 +245,7 @@ export default function CreateMarketScreen() {
             </BetLimitsInfo>
           </FormSection>
 
-          <FormSection>
-            <SectionTitle>
-              <FaCoins />
-              Pool Configuration
-            </SectionTitle>
-            
-            <FormGroup>
-              <Label>Initial Pool (ETH)</Label>
-              <Input 
-                type="number" 
-                step="0.01" 
-                min={0.1} 
-                value={initialPool} 
-                onChange={e => setInitialPool(Number(e.target.value))} 
-                required 
-              />
-              <HelpText>Starting amount in the betting pool</HelpText>
-            </FormGroup>
-          </FormSection>
+
 
           {error && (
             <ErrorContainer>
@@ -317,10 +287,7 @@ export default function CreateMarketScreen() {
               <FieldLabel>Min/Max Bet</FieldLabel>
               <FieldValue>{minBet} / {maxBet} ETH</FieldValue>
             </ReviewField>
-            <ReviewField>
-              <FieldLabel>Initial Pool</FieldLabel>
-              <FieldValue>{initialPool} ETH</FieldValue>
-            </ReviewField>
+
             <ReviewField>
               <FieldLabel>Closing Time</FieldLabel>
               <FieldValue>{closesAt}</FieldValue>

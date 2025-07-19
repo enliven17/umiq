@@ -13,7 +13,7 @@ export const umiDevnet: Chain = {
     public: { http: ['https://devnet.uminetwork.com'] },
   },
   blockExplorers: {
-    default: { name: 'Umi Explorer', url: 'https://devnet.explorer.moved.network' },
+    default: { name: 'Umi Explorer', url: 'https://devnet.explorer.uminetwork.com' },
   },
   testnet: true,
 }; 

@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { Market, Bet, MarketStatus, BetSide } from "@/types/market";
 import { AppDispatch, RootState } from './index';
-import { depositBalance } from './walletSlice';
+
 import { createAsyncThunk } from '@reduxjs/toolkit';
 
 // Dummy data: Demo amaçlı açılmış marketler ve bahisler
@@ -264,10 +264,11 @@ export const closeMarketAndDistributeRewards = createAsyncThunk(
     const winners = market.bets.filter(b => b.side === result);
     const totalWinnerBet = winners.reduce((sum, b) => sum + b.amount, 0);
     if (totalWinnerBet > 0) {
-      winners.forEach(bet => {
-        const pay = (bet.amount / totalWinnerBet) * totalPool;
-        dispatch(depositBalance({ address: bet.userId, amount: pay }));
-      });
+              winners.forEach(bet => {
+          const pay = (bet.amount / totalWinnerBet) * totalPool;
+          // Note: Rewards are now handled by smart contract
+          console.log(`Reward calculated for ${bet.userId}: ${pay} ETH`);
+        });
     }
   }
 );

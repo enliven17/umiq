@@ -2,122 +2,25 @@ import styled from "styled-components";
 import { Market } from "@/types/market";
 import Link from "next/link";
 import { useState } from "react";
-import { FaClock, FaCheckCircle, FaTimesCircle, FaCoins, FaUsers, FaCalendarAlt } from 'react-icons/fa';
-import { useDispatch, useSelector } from 'react-redux';
-import { spendBalance } from '@/store/walletSlice';
-import { addBet } from '@/store/marketsSlice';
+import { FaClock, FaCheckCircle, FaTimesCircle, FaCoins, FaUsers, FaCalendarAlt, FaArrowRight } from 'react-icons/fa';
 import { useWalletConnection } from '@/hooks/useWalletConnection';
-import { v4 as uuidv4 } from 'uuid';
 
 interface Props {
   market: Market;
   onClick?: () => void;
 }
 
-const MIN_BET = 0.001;
-const MAX_BET = 5;
+
 
 export function MarketCard({ market }: Props) {
-  const [modal, setModal] = useState<null | "yes" | "no">(null);
-  const [amount, setAmount] = useState(MIN_BET);
-  const [error, setError] = useState("");
-  const [review, setReview] = useState(false); // Yeni: review ekranı için state
-
-  const dispatch = useDispatch();
-  const { address: connectedAddress, isConnected } = useWalletConnection();
-  const balance = useSelector((state: any) => connectedAddress ? state.wallet.balances[connectedAddress] || 0 : 0);
-
-  const handleBuy = (side: "yes" | "no") => {
-    setModal(side);
-    setReview(false);
-  };
-  const closeModal = () => {
-    setModal(null);
-    setReview(false);
-    setError("");
-  };
+  const { isConnected } = useWalletConnection();
 
   // Kartın boş alanına tıklanınca detay sayfasına yönlendir
   const handleCardClick = (e: React.MouseEvent) => {
-    if (modal) return; // Modal açıkken yönlendirme yapma
-    if ((e.target as HTMLElement).tagName === "BUTTON") return;
+    // Buton'a tıklandığında yönlendirme yapma
+    const target = e.target as HTMLElement;
+    if (target.tagName === "BUTTON" || target.closest('button')) return;
     window.location.href = `/market/${market.id}`;
-  };
-
-  // Basit bir kazanç hesaplama örneği (dummy)
-  const getToWin = () => {
-    if (!amount || amount <= 0) return "0.00 ETH";
-    // Örnek: 2.273x kazanç oranı
-    const odds = modal === "yes" ? 2.273 : 1.754;
-    return `${(amount * odds).toFixed(4)} ETH`;
-  };
-
-  const handleAmountChange = (val: number) => {
-    if (val < MIN_BET) {
-      setAmount(val);
-      setError(`Minimum bet is ${MIN_BET} ETH`);
-      return;
-    }
-    if (val > MAX_BET) {
-      setAmount(val);
-      setError(`Maximum bet is ${MAX_BET} ETH`);
-      return;
-    }
-    setAmount(val);
-    setError("");
-  };
-
-  const handleConfirmBet = () => {
-    setError("");
-    if (!isConnected || !connectedAddress) {
-      setError("Wallet is not connected.");
-      return;
-    }
-    if (modal !== "yes" && modal !== "no") {
-      setError("Invalid bet side.");
-      return;
-    }
-    if (isNaN(amount) || amount < MIN_BET || amount > market.maxBet) {
-      setError(`Bet amount must be between ${MIN_BET} - ${market.maxBet} ETH.`);
-      return;
-    }
-    if (amount > balance) {
-      setError(`Insufficient balance. You have ${balance.toFixed(4)} ETH, but trying to bet ${amount} ETH.`);
-      return;
-    }
-    dispatch(spendBalance({ address: connectedAddress, amount }));
-    dispatch(addBet({
-      id: uuidv4(),
-      userId: connectedAddress,
-      marketId: market.id,
-      amount,
-      side: modal, // modal is guaranteed to be 'yes' or 'no' here
-      timestamp: Date.now()
-    }));
-    setError("");
-    setModal(null);
-  };
-
-  // Yeni: Devam/Review butonu
-  const handleReview = () => {
-    setError("");
-    if (!isConnected || !connectedAddress) {
-      setError("Wallet is not connected.");
-      return;
-    }
-    if (modal !== "yes" && modal !== "no") {
-      setError("Invalid bet side.");
-      return;
-    }
-    if (isNaN(amount) || amount < MIN_BET || amount > market.maxBet) {
-      setError(`Bet amount must be between ${MIN_BET} - ${market.maxBet} ETH.`);
-      return;
-    }
-    if (amount > balance) {
-      setError(`Insufficient balance. You have ${balance.toFixed(4)} ETH, but trying to bet ${amount} ETH.`);
-      return;
-    }
-    setReview(true);
   };
 
   const getStatusIcon = () => {
@@ -200,73 +103,15 @@ export function MarketCard({ market }: Props) {
       </CardContent>
       <CardFooter>
         <ButtonRow>
-          <BuyYesButton onClick={e => { e.stopPropagation(); handleBuy("yes"); }}>
-            Buy Yes
-          </BuyYesButton>
-          <BuyNoButton onClick={e => { e.stopPropagation(); handleBuy("no"); }}>
-            Buy No
-          </BuyNoButton>
+          <SeeDetailsButton onClick={(e) => {
+            e.stopPropagation();
+            window.location.href = `/market/${market.id}`;
+          }}>
+            <span>See Details</span>
+            <FaArrowRight />
+          </SeeDetailsButton>
         </ButtonRow>
       </CardFooter>
-      {modal && (
-        <FullCoverModal $open={!!modal}>
-          <ModalContent>
-            <ModalHeader>
-              <ModalTitle>{market.title}</ModalTitle>
-              <CloseButton onClick={closeModal}>×</CloseButton>
-            </ModalHeader>
-            {!review ? (
-              <>
-                <AmountRow>
-                  <AmountInput
-                    type="number"
-                    min={MIN_BET}
-                    max={market.maxBet}
-                    step={0.001}
-                    value={amount}
-                    onChange={e => handleAmountChange(Number(e.target.value))}
-                    placeholder="Amount (ETH)"
-                  />
-                  <AmountButton onClick={() => handleAmountChange(MIN_BET)}>Min</AmountButton>
-                  <AmountButton onClick={() => handleAmountChange(market.maxBet)}>Max</AmountButton>
-                </AmountRow>
-                <SliderRow>
-                  <Slider
-                    type="range"
-                    min={MIN_BET}
-                    max={market.maxBet}
-                    step={0.001}
-                    value={amount}
-                    onChange={e => handleAmountChange(Number(e.target.value))}
-                  />
-                </SliderRow>
-                {error && <div style={{color: '#ff4d4f', marginBottom: 8}}>{error}</div>}
-                <ConfirmButton $side={modal} disabled={!!error} onClick={handleReview}>
-                  Review Bet
-                  <ToWin>
-                    To win {getToWin()}
-                  </ToWin>
-                </ConfirmButton>
-              </>
-            ) : (
-              <>
-                <ReviewBox>
-                  <ReviewTitle>Review Your Bet</ReviewTitle>
-                  <ReviewItem><b>Market:</b> {market.title}</ReviewItem>
-                  <ReviewItem><b>Side:</b> {modal === "yes" ? "Yes" : "No"}</ReviewItem>
-                  <ReviewItem><b>Amount:</b> {amount} ETH</ReviewItem>
-                  <ReviewItem><b>Potential Win:</b> {getToWin()}</ReviewItem>
-                </ReviewBox>
-                {error && <div style={{color: '#ff4d4f', marginBottom: 8}}>{error}</div>}
-                <ButtonRow style={{marginTop: 16}}>
-                  <ConfirmButton $side={modal} onClick={handleConfirmBet}>Confirm</ConfirmButton>
-                  <CancelButton type="button" onClick={() => setReview(false)}>Cancel</CancelButton>
-                </ButtonRow>
-              </>
-            )}
-          </ModalContent>
-        </FullCoverModal>
-      )}
     </Card>
   );
 }
@@ -277,14 +122,17 @@ const Card = styled.div`
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   border: 1px solid ${({ theme }) => theme.colors.border};
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
+  z-index: 1;
+  will-change: transform;
+  transform: translateZ(0);
   
   &:hover {
-    transform: translateY(-4px);
+    transform: translateY(-4px) translateZ(0);
     box-shadow: 0 12px 32px rgba(0,0,0,0.15);
   }
   
@@ -491,234 +339,65 @@ const ButtonRow = styled.div`
   }
 `;
 
-const BuyYesButton = styled.button`
+const SeeDetailsButton = styled.button`
   flex: 1;
-  background: ${({ theme }) => theme.colors.accentGreen};
-  color: white;
-  border: none;
-  border-radius: 12px;
-  padding: 14px 0;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-  
-  &:hover {
-    background: #17a96b;
-    transform: translateY(-1px);
-  }
-  
-  @media (max-width: 600px) {
-    padding: 12px 0;
-    font-size: 13px;
-  }
-`;
-
-const BuyNoButton = styled.button`
-  flex: 1;
-  background: ${({ theme }) => theme.colors.accentRed};
-  color: white;
-  border: none;
-  border-radius: 12px;
-  padding: 14px 0;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-  
-  &:hover {
-    background: #c0392b;
-    transform: translateY(-1px);
-  }
-  
-  @media (max-width: 600px) {
-    padding: 12px 0;
-    font-size: 13px;
-  }
-`;
-
-const FullCoverModal = styled.div<{ $open: boolean }>`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-  opacity: ${({ $open }) => $open ? 1 : 0};
-  visibility: ${({ $open }) => $open ? 'visible' : 'hidden'};
-  transition: all 0.3s;
-`;
-
-const ModalContent = styled.div`
-  background: ${({ theme }) => theme.colors.card};
-  border-radius: 20px;
-  padding: 32px;
-  max-width: 400px;
-  width: 90%;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-  @media (max-width: 600px) {
-    padding: 24px;
-    border-radius: 16px;
-  }
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-`;
-
-const ModalTitle = styled.h3`
-  color: ${({ theme }) => theme.colors.primary};
-  font-size: 1.2rem;
-  font-weight: 600;
-  margin: 0;
-  flex: 1;
-  margin-right: 16px;
-`;
-
-const CloseButton = styled.button`
-  background: none;
-  border: none;
-  font-size: 24px;
-  color: ${({ theme }) => theme.colors.textSecondary};
-  cursor: pointer;
-  padding: 0;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  transition: background 0.2s;
-  
-  &:hover {
-    background: ${({ theme }) => theme.colors.background};
-  }
-`;
-
-const AmountRow = styled.div`
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-`;
-
-const AmountInput = styled.input`
-  flex: 1;
-  padding: 12px 16px;
-  border: 2px solid ${({ theme }) => theme.colors.border};
-  border-radius: 12px;
-  background: ${({ theme }) => theme.colors.background};
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 16px;
-  
-  &:focus {
-    outline: none;
-    border-color: ${({ theme }) => theme.colors.primary};
-  }
-`;
-
-const AmountButton = styled.button`
-  padding: 12px 16px;
   background: ${({ theme }) => theme.colors.primary};
   color: white;
   border: none;
   border-radius: 12px;
+  padding: 14px 20px;
   font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  will-change: transform;
+  transform: translateZ(0);
   
   &:hover {
-    background: ${({ theme }) => theme.colors.accentGreen};
+    background: ${({ theme }) => theme.colors.primary};
+    opacity: 0.9;
+    transform: translateY(-1px) translateZ(0);
+  }
+  
+  &:active {
+    transform: translateY(0) translateZ(0);
+  }
+  
+  svg {
+    font-size: 12px;
+    transition: transform 0.2s ease;
+  }
+  
+  &:hover svg {
+    transform: translateX(2px);
+  }
+  
+  @media (max-width: 600px) {
+    padding: 12px 16px;
+    font-size: 13px;
   }
 `;
 
-const SliderRow = styled.div`
-  margin-bottom: 24px;
-`;
-
-const Slider = styled.input`
-  width: 100%;
-  height: 6px;
-  border-radius: 3px;
+const DisabledButton = styled.button`
+  flex: 1;
   background: ${({ theme }) => theme.colors.border};
-  outline: none;
-  
-  &::-webkit-slider-thumb {
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: ${({ theme }) => theme.colors.primary};
-    cursor: pointer;
-  }
-  
-  &::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: ${({ theme }) => theme.colors.primary};
-    cursor: pointer;
-    border: none;
-  }
-`;
-
-const ConfirmButton = styled.button<{ $side: string }>`
-  width: 100%;
-  background: ${({ $side, theme }) => $side === "yes" ? theme.colors.accentGreen : theme.colors.accentRed};
-  color: white;
+  color: ${({ theme }) => theme.colors.textSecondary};
   border: none;
   border-radius: 12px;
-  padding: 16px;
-  font-size: 16px;
+  padding: 14px 0;
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-  }
-`;
-
-const ToWin = styled.div`
   font-size: 14px;
-  font-weight: 500;
-  margin-top: 4px;
-  opacity: 0.9;
-`; 
-
-// Yeni: Review ekranı için stiller
-const ReviewBox = styled.div`
-  padding: 18px 8px 8px 8px;
-  text-align: left;
-`;
-const ReviewTitle = styled.div`
-  font-size: 1.15rem;
-  font-weight: 700;
-  margin-bottom: 10px;
-`;
-const ReviewItem = styled.div`
-  font-size: 1rem;
-  margin-bottom: 6px;
-`;
-const CancelButton = styled.button`
-  background: ${({ theme }) => theme.colors.accentRed};
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 18px;
-  font-size: 1rem;
-  font-weight: 600;
-  margin-left: 12px;
-  cursor: pointer;
-  transition: background 0.2s;
-  &:hover {
-    background: #c0392b;
+  cursor: not-allowed;
+  opacity: 0.6;
+  
+  @media (max-width: 600px) {
+    padding: 12px 0;
+    font-size: 13px;
   }
-`; 
+`;
+
+ 

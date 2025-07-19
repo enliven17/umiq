@@ -6,7 +6,7 @@ export const metadata = {
   name: 'UMIq',
   description: 'UMIq Polymarket Clone',
   url: 'https://umiq.app',
-  icons: ['https://devnet.explorer.moved.network/favicon.ico'],
+  icons: ['https://devnet.explorer.uminetwork.com/favicon.ico'],
 };
 
 let wagmiConfig: any = undefined;

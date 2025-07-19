@@ -3,7 +3,7 @@ import Link from "next/link";
 import styled from "styled-components";
 import { usePathname } from "next/navigation";
 import { ConnectWalletButton } from "@/components/ConnectWalletButton";
-import { BalanceManager } from "@/components/BalanceManager";
+
 import { FaSearch, FaBrain, FaCoins } from 'react-icons/fa';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
@@ -25,10 +25,7 @@ export function MainNav() {
     return 0;
   });
 
-  const balance = useSelector((state: RootState) => {
-    if (!connectedAddress) return 0;
-    return state.wallet.balances[connectedAddress] || 0;
-  });
+
 
   return (
     <NavBar>
@@ -52,11 +49,7 @@ export function MainNav() {
           <FaBrain style={{marginRight: 6, color: '#7f5af0', fontSize: 18}} />
           <DefiQValue>{defiQ}</DefiQValue>
         </DefiQBox>
-        <BalanceBox title="System Balance">
-          <FaCoins style={{marginRight: 6, color: '#00d4ff', fontSize: 18}} />
-          <BalanceValue>{balance.toFixed(4)} ETH</BalanceValue>
-        </BalanceBox>
-        <BalanceManager />
+
         <WalletBox>
           <ConnectWalletButton />
         </WalletBox>

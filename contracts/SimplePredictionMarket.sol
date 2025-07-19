@@ -1,16 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-
-/**
- * @title PredictionMarket
- * @dev Umi devnet için basitleştirilmiş prediction market contract
- */
-contract PredictionMarket is ReentrancyGuard, Ownable {
-    constructor() Ownable(msg.sender) {}
-    
+contract SimplePredictionMarket {
     struct Market {
         uint256 id;
         address creator;
@@ -66,11 +57,6 @@ contract PredictionMarket is ReentrancyGuard, Ownable {
 
     modifier marketNotResolved(uint256 marketId) {
         require(!markets[marketId].isResolved, "Market is already resolved");
-        _;
-    }
-
-    modifier onlyMarketCreator(uint256 marketId) {
-        require(markets[marketId].creator == msg.sender, "Only market creator can call this");
         _;
     }
 
@@ -152,13 +138,13 @@ contract PredictionMarket is ReentrancyGuard, Ownable {
     }
 
     /**
-     * @dev Resolve a market (only owner or market creator)
+     * @dev Resolve a market (only market creator)
      */
     function resolveMarket(uint256 marketId, bool outcome) external marketExists(marketId) marketNotResolved(marketId) {
         Market storage market = markets[marketId];
         require(block.timestamp >= market.closingTime, "Market not yet closed");
         require(market.totalBets > 0, "No bets placed on market");
-        require(msg.sender == owner() || msg.sender == market.creator, "Only owner or creator can resolve");
+        require(msg.sender == market.creator, "Only creator can resolve");
 
         market.isResolved = true;
         market.outcome = outcome;
@@ -167,10 +153,10 @@ contract PredictionMarket is ReentrancyGuard, Ownable {
     }
 
     /**
-     * @dev Close a market (only owner or market creator)
+     * @dev Close a market (only market creator)
      */
     function closeMarket(uint256 marketId) external marketExists(marketId) marketNotClosed(marketId) {
-        require(msg.sender == owner() || msg.sender == markets[marketId].creator, "Only owner or creator can close");
+        require(msg.sender == markets[marketId].creator, "Only creator can close");
         markets[marketId].isClosed = true;
         emit MarketClosed(marketId);
     }
@@ -178,7 +164,7 @@ contract PredictionMarket is ReentrancyGuard, Ownable {
     /**
      * @dev Claim rewards for winning bets
      */
-    function claimReward(uint256 marketId) external nonReentrant marketExists(marketId) {
+    function claimReward(uint256 marketId) external marketExists(marketId) {
         Market storage market = markets[marketId];
         require(market.isResolved, "Market not resolved");
         require(!market.isClosed, "Market is closed");
@@ -209,7 +195,7 @@ contract PredictionMarket is ReentrancyGuard, Ownable {
     /**
      * @dev Withdraw user balance
      */
-    function withdrawBalance() external nonReentrant {
+    function withdrawBalance() external {
         uint256 balance = userBalances[msg.sender];
         require(balance > 0, "No balance to withdraw");
 
@@ -217,16 +203,6 @@ contract PredictionMarket is ReentrancyGuard, Ownable {
         payable(msg.sender).transfer(balance);
         
         emit BalanceWithdrawn(msg.sender, balance);
-    }
-
-    /**
-     * @dev Emergency withdraw (only owner)
-     */
-    function emergencyWithdraw() external onlyOwner {
-        uint256 balance = address(this).balance;
-        require(balance > 0, "No balance to withdraw");
-        
-        payable(owner()).transfer(balance);
     }
 
     // View functions

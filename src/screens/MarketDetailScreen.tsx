@@ -6,7 +6,7 @@ import type { AppDispatch } from '@/store';
 import { RootState } from "@/store";
 import { addBet, closeMarket, claimReward } from "@/store/marketsSlice";
 import { closeMarketAndDistributeRewards } from "@/store/marketsSlice";
-import { spendBalance } from "@/store/walletSlice";
+
 import { Market, BetSide } from "@/types/market";
 import styled from "styled-components";
 import { v4 as uuidv4 } from "uuid";
@@ -76,10 +76,7 @@ export default function MarketDetailScreen() {
 
   const rewards = useSelector((state: RootState) => state.markets.claimableRewards);
   const myReward = rewards.find(r => r.userId === connectedAddress && r.marketId === market?.id);
-  const balance = useSelector((state: RootState) => {
-    if (!connectedAddress) return 0;
-    return state.wallet.balances[connectedAddress] || 0;
-  });
+
   const [comments, setComments] = useState([
     { id: 1, user: "Alice", text: "I think this market is very interesting!", date: "2024-07-06 20:00" },
     { id: 2, user: "Bob", text: "My bet is on YES 🚀", date: "2024-07-06 20:10" },
@@ -112,10 +109,6 @@ export default function MarketDetailScreen() {
       setError("Wallet is not connected.");
       return;
     }
-    if (betAmount > balance) {
-      setError(`Insufficient balance. You have ${balance.toFixed(4)} ETH, but trying to bet ${betAmount} ETH.`);
-      return;
-    }
     setReview(true);
   };
 
@@ -135,12 +128,7 @@ export default function MarketDetailScreen() {
       return;
     }
     
-    if (betAmount > balance) {
-      setError(`Insufficient balance. You have ${balance.toFixed(4)} ETH, but trying to bet ${betAmount} ETH.`);
-      return;
-    }
-    
-    dispatch(spendBalance({ address: connectedAddress, amount: betAmount }));
+
     dispatch(addBet({
       id: uuidv4(),
       userId: connectedAddress,
