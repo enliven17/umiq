@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 import { PredictionMarket__factory } from '../types/contracts';
 
 // Contract ABI and address
-const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '';
+const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0x897FBB05A18ceE2d9451a9F644B9831DDf4Dd481';
 const RPC_URL = 'https://devnet.uminetwork.com';
 
 // Contract interface

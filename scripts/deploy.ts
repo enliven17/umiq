@@ -1,14 +1,11 @@
-const { ethers } = require('hardhat');
+import { ethers } from 'hardhat';
 
 async function main() {
   const PredictionMarket = await ethers.getContractFactory('PredictionMarket');
   const predictionMarket = await PredictionMarket.deploy();
   await predictionMarket.waitForDeployment();
-  // Transaction hash
-  const txnHash = predictionMarket.deploymentTransaction().hash;
-  console.log('Deploy transaction hash:', txnHash);
   // Get the generated contract address from the transaction receipt
-  const receipt = await ethers.provider.getTransactionReceipt(txnHash);
+  const receipt = await ethers.provider.getTransactionReceipt(predictionMarket.deploymentTransaction()?.hash!);
   console.log('PredictionMarket is deployed to:', receipt?.contractAddress);
 }
 

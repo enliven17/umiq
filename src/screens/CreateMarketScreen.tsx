@@ -96,7 +96,7 @@ export default function CreateMarketScreen() {
     setLoading(true);
     try {
       // Contract address - Umi Devnet
-      const contractAddress = "0x0000000000000000000000000000000000000000"; // Will be updated after deployment
+      const contractAddress = "0x897FBB05A18ceE2d9451a9F644B9831DDf4Dd481";
       if (!contractAddress || contractAddress === "0x0000000000000000000000000000000000000000") {
         setError('Contract not deployed yet. Please wait for deployment to complete.');
         setLoading(false);

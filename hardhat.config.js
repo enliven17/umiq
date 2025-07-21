@@ -14,17 +14,13 @@ module.exports = {
   defaultNetwork: "devnet",
   networks: {
     devnet: {
-      url: "https://devnet.uminetwork.com",
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      url: "https://devnet.moved.network", // UMI EVM endpoint
       chainId: 42069,
-      gasPrice: 1000000000, // 1 gwei
-      gas: 8000000,
-      timeout: 60000,
-      verify: {
-        etherscan: {
-          apiUrl: "https://devnet.explorer.uminetwork.com/api"
-        }
-      }
+      accounts: [
+        process.env.PRIVATE_KEY && process.env.PRIVATE_KEY.startsWith("0x")
+          ? process.env.PRIVATE_KEY
+          : "0x" + process.env.PRIVATE_KEY
+      ]
     },
     localhost: {
       url: "http://127.0.0.1:8545",
