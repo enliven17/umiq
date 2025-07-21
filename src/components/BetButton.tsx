@@ -67,12 +67,7 @@ export function BetButton({ marketId, prediction, minBet, maxBet, onBetPlaced }:
       
       // Contract address - Umi Devnet
       const contractAddress = "0x897FBB05A18ceE2d9451a9F644B9831DDf4Dd481";
-      if (!contractAddress || contractAddress === "0x0000000000000000000000000000000000000000") {
-        setError('Contract not deployed yet. Please wait for deployment to complete.');
-        setIsLoading(false);
-        return;
-      }
-
+      
       // Contract ABI for placeBet function
       const contractABI = [
         "function placeBet(uint256 marketId, bool prediction) external payable"

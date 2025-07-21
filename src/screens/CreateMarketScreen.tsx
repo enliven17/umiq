@@ -97,11 +97,12 @@ export default function CreateMarketScreen() {
     try {
       // Contract address - Umi Devnet
       const contractAddress = "0x897FBB05A18ceE2d9451a9F644B9831DDf4Dd481";
-      if (!contractAddress || contractAddress === "0x0000000000000000000000000000000000000000") {
-        setError('Contract not deployed yet. Please wait for deployment to complete.');
-        setLoading(false);
-        return;
-      }
+      // Kontrolü kaldırıyoruz, çünkü adres sabit ve geçerli
+      // if (!contractAddress || contractAddress === "0x0000000000000000000000000000000000000000") {
+      //   setError('Contract not deployed yet. Please wait for deployment to complete.');
+      //   setLoading(false);
+      //   return;
+      // }
 
       if (!window.ethereum) throw new Error('Ethereum wallet not found.');
       const provider = new ethers.BrowserProvider(window.ethereum);
