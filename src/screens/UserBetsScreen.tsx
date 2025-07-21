@@ -18,11 +18,6 @@ export default function UserBetsScreen() {
     return state.markets.userDefiQ[connectedAddress] || 0;
   });
 
-  const balance = useSelector((state: RootState) => {
-    if (!connectedAddress) return 0;
-    return state.wallet.balances[connectedAddress] || 0;
-  });
-
   // Kullanıcının tüm bahisleri
   const myBets = connectedAddress ? markets.flatMap(m => m.bets.filter(b => b.userId === connectedAddress).map(b => ({ ...b, market: m }))) : [];
 
@@ -53,10 +48,11 @@ export default function UserBetsScreen() {
             <StatLabel><FaBrain style={{marginRight: 6, color: '#7f5af0'}}/>DEFiq</StatLabel>
             <StatValue>{defiQ}</StatValue>
           </StatItem>
-          <StatItem title="System Balance">
+          {/* Balance ile ilgili kodu kaldırıyorum */}
+          {/* <StatItem title="System Balance">
             <StatLabel><FaCoins style={{marginRight: 6, color: '#00d4ff'}}/>Balance</StatLabel>
             <StatValue>{balance.toFixed(4)} ETH</StatValue>
-          </StatItem>
+          </StatItem> */}
         </Stats>
         <BalanceActions>
           
