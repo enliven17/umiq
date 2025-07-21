@@ -5,7 +5,6 @@ import styled from "styled-components";
 import { useState, useEffect } from 'react';
 import { FaTrophy, FaClock, FaCheckCircle, FaTimesCircle, FaCoins, FaBrain } from 'react-icons/fa';
 import { useWalletConnection } from '@/hooks/useWalletConnection';
-import { BalanceManager } from '@/components/BalanceManager';
 
 export default function UserBetsScreen() {
   const { address: connectedAddress } = useWalletConnection();
@@ -60,7 +59,7 @@ export default function UserBetsScreen() {
           </StatItem>
         </Stats>
         <BalanceActions>
-          <BalanceManager />
+          
         </BalanceActions>
       </Header>
 
